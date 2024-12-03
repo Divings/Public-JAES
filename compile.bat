@@ -1,6 +1,7 @@
 @echo off
 cd /d ./
 del *.class
-javac Encrypt.java
-jar cfm Encrypt.jar MANIFEST.MF *.class  -C resources .
+del *.jar
+javac JAES.java
+jar cfm JAES.jar MANIFEST.MF *.class  -C resources .
 pause
