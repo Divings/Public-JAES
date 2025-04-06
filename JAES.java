@@ -1,3 +1,11 @@
+/*
+ * JAES.java - A simple AES file encryptor/decryptor GUI
+ * 
+ * Copyright (c) 2025 innovation craft Inc.
+ *
+ * This software is released under the MIT License.
+ * https://opensource.org/licenses/MIT
+ */
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
