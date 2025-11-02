@@ -1,14 +1,9 @@
-// JAES.java  (Java 8 / AES-GCM + RSA-OAEP / Blockchain JSON / .jdec=圧縮JSON, .jpng=可読JSON / PNGメタ LastUpdated / 既存チェーン継承)
-//
-// メニュー:
-//  1: 暗号化（.jdec出力：既存 .jdec があればチェーン継承し Encrypt 追記、チェーンはGZIP圧縮で不可読化）
-//  2: 復号化（.jdec入力：チェーン追記して上書き、追記部分もGZIP圧縮）
-//  3: 暗号化（.jpng出力：既存 .jpng があればチェーン継承し Encrypt 追記、PNGメタ LastUpdated付、チェーンは可読JSON）
-//  4: 復号化（.jpng入力：元ファイル名で出力、チェーン追記＆PNG書戻し、LastUpdated更新、チェーンは可読JSONのまま）
-//  5: ブロックチェーン検証（.jdec / .jpng：圧縮/非圧縮どちらも自動判定でOK）
-//  6: 終了
-//
-// 依存: JDK 8 以降（外部ライブラリ不要）
+/**
+ * BlockchainExporter.java
+ * 
+ * Copyright (c) 2025 Anvelk Innovations LLC / Innovation Craft Inc.
+ * All rights reserved.
+ */
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
