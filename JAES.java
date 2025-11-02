@@ -281,10 +281,12 @@ public class JAES {
 
                     } else {
                         System.out.println("❌ 無効な選択です");
+                        clearConsole();
                     }
                     //clearConsole();
                 } catch (Exception ex) {
                     System.err.println("⚠ エラー: " + ex.getMessage());
+                    clearConsole();
                 }
             }
         } catch (Exception e) {
