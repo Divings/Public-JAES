@@ -63,6 +63,7 @@ public class JAES {
     private static final Path PUB_PEM  = KEY_DIR.resolve("public.pem");
 
     public static void main(String[] args) {
+        System.setProperty("file.encoding", "UTF-8");
         try {
             Files.createDirectories(KEY_DIR);
             ensureKeyPair();
@@ -197,7 +198,7 @@ public class JAES {
                         } else {
                             out = inPng.resolveSibling(name + ".dec");
                         }
-                        System.out.println("[INFO] 出力ファイル名: " + out);
+                        // System.out.println("[INFO] 出力ファイル名: " + out);
                         System.out.print("メモ（任意）: ");
                         String memo = br.readLine();
 
