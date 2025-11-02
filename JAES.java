@@ -30,7 +30,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-
 public class JAES {
 
     // ===== 定数 =====
@@ -43,7 +42,23 @@ public class JAES {
     private static final String PNG_EXT = ".jpng";
 
     // 鍵ファイル
-    private static final Path KEY_DIR = Paths.get("key");
+    //private static final Path KEY_DIR = Paths.get("key");
+    private static final Path KEY_DIR;
+
+    static {
+        String appData = System.getenv("APPDATA");
+        if (appData == null || appData.isEmpty()) {
+            // Linux/macOS対応
+            appData = System.getProperty("user.home") + "/.config";
+        }
+        KEY_DIR = Paths.get(appData, "JAES", "key");
+        try {
+            Files.createDirectories(KEY_DIR);
+        } catch (IOException e) {
+            System.err.println("⚠ キーディレクトリ作成に失敗しました: " + KEY_DIR);
+    }
+}
+
     private static final Path PRIV_PEM = KEY_DIR.resolve("private.pem");
     private static final Path PUB_PEM  = KEY_DIR.resolve("public.pem");
 
@@ -74,8 +89,17 @@ public class JAES {
                 try {
                     if ("1".equals(choice)) {
                         System.out.print("暗号化するファイルのパス: ");
-                        Path in = Paths.get(br.readLine().trim());
-                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
+                        String input = br.readLine().trim();  // まず文字列で受け取る
+
+                        if (input.isEmpty()) {
+                            System.out.println("処理をキャンセルしました。メニューに戻ります。");
+                            clearConsole();
+                            continue; // または continue; （ループ構造に応じて）
+                        }
+
+                        Path in = Paths.get(input);  // 空でない場合のみ Path に変換
+
+                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); clearConsole();continue; }
                         System.out.print("メモ（任意）: ");
                         String memo = br.readLine();
                         Path out = in.resolveSibling(in.getFileName().toString() + ".jdec");
@@ -92,10 +116,18 @@ public class JAES {
                         );
                         Files.write(out, blob, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                         System.out.println("✅ 暗号化完了（チェーン継承）: " + out);
-
+                        clearConsole();
                     } else if ("2".equals(choice)) {
                         System.out.print(".jdecファイルのパス: ");
-                        Path in = Paths.get(br.readLine().trim());
+                        String input = br.readLine().trim();  // まず文字列で受け取る
+
+                        if (input.isEmpty()) {
+                            System.out.println("処理をキャンセルしました。メニューに戻ります。");
+                            clearConsole();
+                            continue; // または continue; （ループ構造に応じて）
+                        }
+
+                        Path in = Paths.get(input);  // 空でない場合のみ Path に変換
                         if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
                         System.out.print("メモ（任意）: ");
                         String memo = br.readLine();
@@ -104,10 +136,19 @@ public class JAES {
                         DecryptResult res = decryptFromBlob(Files.readAllBytes(in), loadPrivateKeyFromPemOrDer(PRIV_PEM), memo, true, in);
                         Files.write(out, res.plaintext, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                         System.out.println("✅ 復号完了（チェーン追記済）: " + out);
-
+                        clearConsole();
                     } else if ("3".equals(choice)) {
                         System.out.print("暗号化するファイルのパス: ");
-                        Path in = Paths.get(br.readLine().trim());
+                        String input = br.readLine().trim();  // まず文字列で受け取る
+
+                        if (input.isEmpty()) {
+                            System.out.println("処理をキャンセルしました。メニューに戻ります。");
+                            clearConsole();
+                            continue; // または continue; （ループ構造に応じて）
+                        }
+
+                        Path in = Paths.get(input);  // 空でない場合のみ Path に変換
+
                         if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
                         Path outPng = in.resolveSibling(in.getFileName().toString() + PNG_EXT);
                         System.out.println("[INFO] 出力ファイル名: " + outPng);
@@ -133,10 +174,19 @@ public class JAES {
                         meta.put("LastUpdated", Instant.now().toString());
                         writePngWithText(img, outPng, meta);
                         System.out.println("✅ 暗号化結果をPNGに出力（チェーン継承・LastUpdated付）: " + outPng);
-
+                        clearConsole();
                     } else if ("4".equals(choice)) {
                         System.out.print("入力PNGファイルのパス: ");
-                        Path inPng = Paths.get(br.readLine().trim());
+                        String input = br.readLine().trim();  // まず文字列で受け取る
+
+                        if (input.isEmpty()) {
+                            System.out.println("処理をキャンセルしました。メニューに戻ります。");
+                            clearConsole();
+                            continue; // または continue; （ループ構造に応じて）
+                        }
+
+                        Path inPng = Paths.get(input);  // 空でない場合のみ Path に変換
+
                         if (!Files.exists(inPng)) { System.out.println("❌ ファイルが存在しません"); continue; }
 
                         // 自動で元の拡張子に復元（<元名>.jpng → <元名>）
@@ -153,10 +203,10 @@ public class JAES {
 
                         BufferedImage img = ImageIO.read(inPng.toFile());
                         byte[] pixels = decodeFromImage(img);
-                        if (pixels.length < 4) { System.out.println("❌ PNGが不正です"); continue; }
+                        if (pixels.length < 4) { System.out.println("❌ PNGが不正です"); clearConsole();continue; }
                         ByteBuffer bb = ByteBuffer.wrap(pixels);
                         int payloadLen = bb.getInt();
-                        if (payloadLen < 0 || payloadLen > pixels.length - 4) { System.out.println("❌ PNG内データ長が不正"); continue; }
+                        if (payloadLen < 0 || payloadLen > pixels.length - 4) { System.out.println("❌ PNG内データ長が不正");clearConsole(); continue; }
                         byte[] blob = new byte[payloadLen];
                         bb.get(blob);
 
@@ -176,11 +226,20 @@ public class JAES {
                             writePngWithText(updated, inPng, meta);
                         }
                         System.out.println("✅ PNGから復号完了・チェーン更新＆メタ更新済み: " + out);
-
+                        clearConsole();
                     } else if ("5".equals(choice)) {
                         System.out.print("検証するファイルのパス（.jdec / .jpng）: ");
-                        Path in = Paths.get(br.readLine().trim());
-                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
+                        String input = br.readLine().trim();  // まず文字列で受け取る
+
+                        if (input.isEmpty()) {
+                            System.out.println("処理をキャンセルしました。メニューに戻ります。");
+                            clearConsole();
+                            continue; // または continue; （ループ構造に応じて）
+                        }
+
+                        Path in = Paths.get(input);  // 空でない場合のみ Path に変換
+
+                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); clearConsole();continue; }
 
                         String name = in.getFileName().toString();
                         byte[] blob;
@@ -189,11 +248,12 @@ public class JAES {
                             // PNG から埋め込みデータ抽出
                             BufferedImage img = ImageIO.read(in.toFile());
                             byte[] pixels = decodeFromImage(img);
-                            if (pixels.length < 4) { System.out.println("❌ PNGが不正です"); continue; }
+                            if (pixels.length < 4) { System.out.println("❌ PNGが不正です"); clearConsole();continue; }
                             ByteBuffer bb = ByteBuffer.wrap(pixels);
                             int payloadLen = bb.getInt();
                             if (payloadLen < 0 || payloadLen > pixels.length - 4) {
                                 System.out.println("❌ PNG内データ長が不正");
+                                clearConsole();
                                 continue;
                             }
                             blob = new byte[payloadLen];
@@ -211,8 +271,9 @@ public class JAES {
                             boolean ok = false;
                             try { ok = chain.isValid(); } catch (Exception ignore) {}
                             System.out.println(ok ? "✅ チェーンは整合しています" : "❌ チェーンに不整合があります");
+                            clearConsole();
                         }
-                    clearConsole();
+                    //clearConsole();
                     } else if ("6".equals(choice)) {
                         System.out.println("👋 終了します。");
                         break;
@@ -220,6 +281,7 @@ public class JAES {
                     } else {
                         System.out.println("❌ 無効な選択です");
                     }
+                    //clearConsole();
                 } catch (Exception ex) {
                     System.err.println("⚠ エラー: " + ex.getMessage());
                 }
@@ -234,8 +296,6 @@ public class JAES {
         Scanner scanner = new Scanner(System.in);  // 標準入力を扱うScannerを作成
         System.out.print(" >> ");                  // プロンプトを表示
         String input = scanner.nextLine();         // 1行分の入力を読み取る
-        //System.out.println("あなたが入力したのは: " + input);
-        
     }
 
     // ========= 画面を初期化 =========
@@ -588,19 +648,33 @@ public class JAES {
         KeyPair kp = kpg.generateKeyPair();
         writePem("PRIVATE KEY", kp.getPrivate().getEncoded(), PRIV_PEM);
         writePem("PUBLIC KEY", kp.getPublic().getEncoded(), PUB_PEM);
-        System.out.println("[INFO] RSA鍵ペアを生成しました: ./key");
+        
     }
 
     private static void writePem(String type, byte[] der, Path out) throws IOException {
-        String b64 = Base64.getEncoder().encodeToString(der);
-        BufferedWriter w = Files.newBufferedWriter(out, StandardCharsets.US_ASCII);
+    // AppData配下のファイル名を決定
+    String fileName;
+    if (type.toLowerCase().contains("private")) {
+        fileName = "private.pem";
+    } else if (type.toLowerCase().contains("public")) {
+        fileName = "public.pem";
+    } else {
+        fileName = type.replaceAll("\\s+", "_").toLowerCase() + ".pem";
+    }
+
+    Path pemOut = KEY_DIR.resolve(fileName);
+
+    // PEM形式で書き出し
+    String b64 = Base64.getEncoder().encodeToString(der);
+    try (BufferedWriter w = Files.newBufferedWriter(pemOut, StandardCharsets.US_ASCII)) {
         w.write("-----BEGIN " + type + "-----\n");
         for (int i = 0; i < b64.length(); i += 64) {
             w.write(b64.substring(i, Math.min(i + 64, b64.length())) + "\n");
         }
         w.write("-----END " + type + "-----\n");
-        w.close();
     }
+}
+
 
     private static PublicKey loadPublicKeyFromPemOrDer(Path p) throws Exception {
         byte[] all = Files.readAllBytes(p);
