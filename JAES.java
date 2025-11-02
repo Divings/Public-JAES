@@ -1,14 +1,9 @@
-// JAES.java  (Java 8 / AES-GCM + RSA-OAEP / Blockchain JSON / .jdec=圧縮JSON, .jpng=可読JSON / PNGメタ LastUpdated / 既存チェーン継承)
-//
-// メニュー:
-//  1: 暗号化（.jdec出力：既存 .jdec があればチェーン継承し Encrypt 追記、チェーンはGZIP圧縮で不可読化）
-//  2: 復号化（.jdec入力：チェーン追記して上書き、追記部分もGZIP圧縮）
-//  3: 暗号化（.jpng出力：既存 .jpng があればチェーン継承し Encrypt 追記、PNGメタ LastUpdated付、チェーンは可読JSON）
-//  4: 復号化（.jpng入力：元ファイル名で出力、チェーン追記＆PNG書戻し、LastUpdated更新、チェーンは可読JSONのまま）
-//  5: ブロックチェーン検証（.jdec / .jpng：圧縮/非圧縮どちらも自動判定でOK）
-//  6: 終了
-//
-// 依存: JDK 8 以降（外部ライブラリ不要）
+/**
+ * BlockchainExporter.java
+ * 
+ * Copyright (c) 2025 Anvelk Innovations LLC / Innovation Craft Inc.
+ * All rights reserved.
+ */
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -79,7 +74,7 @@ public class JAES {
                 try {
                     if ("1".equals(choice)) {
                         System.out.print("暗号化するファイルのパス: ");
-                        Path in = normalizePathInput(br.readLine());
+                        Path in = Paths.get(br.readLine().trim());
                         if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
                         System.out.print("メモ（任意）: ");
                         String memo = br.readLine();
@@ -100,7 +95,8 @@ public class JAES {
 
                     } else if ("2".equals(choice)) {
                         System.out.print(".jdecファイルのパス: ");
-                        Path in = normalizePathInput(br.readLine());                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
+                        Path in = Paths.get(br.readLine().trim());
+                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
                         System.out.print("メモ（任意）: ");
                         String memo = br.readLine();
                         Path out = guessDecryptedName(in);
@@ -111,7 +107,8 @@ public class JAES {
 
                     } else if ("3".equals(choice)) {
                         System.out.print("暗号化するファイルのパス: ");
-                        Path in = normalizePathInput(br.readLine());                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
+                        Path in = Paths.get(br.readLine().trim());
+                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
                         Path outPng = in.resolveSibling(in.getFileName().toString() + PNG_EXT);
                         System.out.println("[INFO] 出力ファイル名: " + outPng);
                         System.out.print("メモ（任意）: ");
@@ -182,7 +179,8 @@ public class JAES {
 
                     } else if ("5".equals(choice)) {
                         System.out.print("検証するファイルのパス（.jdec / .jpng）: ");
-                        Path in = normalizePathInput(br.readLine());                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
+                        Path in = Paths.get(br.readLine().trim());
+                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
 
                         String name = in.getFileName().toString();
                         byte[] blob;
@@ -253,16 +251,6 @@ public class JAES {
             System.out.println("画面クリアに失敗しました: " + e.getMessage());
         }
     }
-
-    private static Path normalizePathInput(String raw) {
-    if (raw == null) return null;
-    String fixed = raw
-        .replace("\uFEFF", "")  // BOM除去
-        .replace("\"", "")       // ダブルクォート除去
-        .replace("\\", "/")      // スラッシュ統一
-        .trim();
-    return Paths.get(fixed);
-}
 
     // ========= 復号結果ホルダ =========
     static class DecryptResult {
