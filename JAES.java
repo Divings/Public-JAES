@@ -62,13 +62,18 @@ public class JAES {
     private static final Path PRIV_PEM = KEY_DIR.resolve("private.pem");
     private static final Path PUB_PEM  = KEY_DIR.resolve("public.pem");
     private static Path CURRENT_PUB_KEY = PUB_PEM;
+    private static boolean NOCLS_MODE = false;
 
     public static void main(String[] args) {
         System.setProperty("file.encoding", "UTF-8");
         System.setProperty("sun.jnu.encoding", "UTF-8");
-
+        
         // --- 公開鍵選択 ---
         if (args.length > 0) {
+            if (args[0].equals("--nocls")){
+                NOCLS_MODE=true;
+            }
+
             Path argKey = Paths.get(args[0]);
             if (Files.exists(argKey)) {
                 CURRENT_PUB_KEY = argKey;
@@ -319,6 +324,9 @@ public class JAES {
 
     // ========= 画面を初期化 =========
     public static void clearConsole() {
+        if (NOCLS_MODE){
+            return;
+        }
         input(" >>");
         try {
             if (System.getProperty("os.name").startsWith("Windows")) {
