@@ -37,7 +37,7 @@
 
 ## システム要件
 
-- **Java Runtime Environment (JRE)**: 8以降  
+- **Java Runtime Environment (JRE)**:  25推奨 
 - **対応OS**: Windows / macOS / Linux  
 - **メモリ要件**: 512MB以上推奨  
 - **推奨文字コード**: UTF-8  
