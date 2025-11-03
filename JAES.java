@@ -61,9 +61,20 @@ public class JAES {
 
     private static final Path PRIV_PEM = KEY_DIR.resolve("private.pem");
     private static final Path PUB_PEM  = KEY_DIR.resolve("public.pem");
+    private static Path CURRENT_PUB_KEY = PUB_PEM;
 
     public static void main(String[] args) {
         System.setProperty("file.encoding", "UTF-8");
+        System.setProperty("sun.jnu.encoding", "UTF-8");
+
+        // --- 公開鍵選択 ---
+        if (args.length > 0) {
+            Path argKey = Paths.get(args[0]);
+            if (Files.exists(argKey)) {
+                CURRENT_PUB_KEY = argKey;
+            }
+        }
+
         try {
             Files.createDirectories(KEY_DIR);
             ensureKeyPair();
@@ -71,18 +82,19 @@ public class JAES {
             System.err.println("鍵ディレクトリ準備に失敗: " + e.getMessage());
             return;
         }
-
+        
         try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in, "UTF-8"))) {
             while (true) {
                 System.out.println();
-                System.out.println("モードを選択してください:");
+                System.out.println("現在使用中の公開鍵: " + CURRENT_PUB_KEY.getFileName());
+                System.out.println("\nモードを選択してください:");
                 System.out.println("1: 暗号化（jdec出力）");
                 System.out.println("2: 復号化（jdec入力）");
                 System.out.println("3: 暗号化（PNG出力）");
                 System.out.println("4: 復号化（PNG入力) ");
                 System.out.println("5: ブロックチェーン検証（.jdec / .jpng）");
                 System.out.println("6: 終了");
-                System.out.print("選択 >> ");
+                System.out.print("\n選択 >> ");
                 String choice = br.readLine();
                 if (choice == null) break;
                 choice = choice.trim();
@@ -107,14 +119,18 @@ public class JAES {
 
                         // ▶ 既存 .jdec があればチェーン継承
                         Blockchain baseChain = tryLoadExistingChainFromJdec(out);
+                        byte[] blob;
+                        
 
-                        byte[] blob = buildEncryptedBlobWithBaseChain(
-                                Files.readAllBytes(in),
-                                loadPublicKeyFromPemOrDer(PUB_PEM),
-                                memo,
-                                baseChain,
-                                true   // compressChainForJdec
+                        blob = buildEncryptedBlobWithBaseChain(
+                        Files.readAllBytes(in),
+                            loadPublicKeyFromPemOrDer(CURRENT_PUB_KEY),
+                            memo,
+                            baseChain,
+                            true // compressChainForJdec
                         );
+
+                        
                         Files.write(out, blob, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                         System.out.println("✅ 暗号化完了（チェーン継承）: " + out);
                         clearConsole();
@@ -161,7 +177,7 @@ public class JAES {
 
                         byte[] blob = buildEncryptedBlobWithBaseChain(
                                 Files.readAllBytes(in),
-                                loadPublicKeyFromPemOrDer(PUB_PEM),
+                                loadPublicKeyFromPemOrDer(CURRENT_PUB_KEY),
                                 memo,
                                 baseChain,
                                 false  // compressChainForJdec = false → 可読JSONでPNGへ
