@@ -70,6 +70,15 @@ public class JAES {
                 
         // --- 公開鍵選択 ---
         if (args.length > 0) {
+            if (args[0].equals("--exportpub")){
+                try {
+                    JAESPublicKeyExporter.exportToJarDirectory(true);
+                
+                } catch (IOException e) {
+                    System.err.println("公開鍵のエクスポートに失敗しました: " + e.getMessage());
+                }
+                clearConsole();
+            }
             if (args[0].equals("--nocls")){
                 NOCLS_MODE=true;
             }
@@ -80,6 +89,10 @@ public class JAES {
             }
         }
 
+
+
+
+        // JAESPublicKeyExporter.exportToJarDirectory();
         try {
             Files.createDirectories(KEY_DIR);
             ensureKeyPair();
