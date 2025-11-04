@@ -30,6 +30,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
 public class JAES {
 
     // ===== 定数 =====
@@ -42,7 +43,6 @@ public class JAES {
     private static final String PNG_EXT = ".jpng";
 
     // 鍵ファイル
-    //private static final Path KEY_DIR = Paths.get("key");
     private static final Path KEY_DIR;
 
     static {
@@ -67,7 +67,7 @@ public class JAES {
     public static void main(String[] args) {
         System.setProperty("file.encoding", "UTF-8");
         System.setProperty("sun.jnu.encoding", "UTF-8");
-        
+                
         // --- 公開鍵選択 ---
         if (args.length > 0) {
             if (args[0].equals("--nocls")){
@@ -295,7 +295,7 @@ public class JAES {
                             System.out.println(ok ? "✅ チェーンは整合しています" : "❌ チェーンに不整合があります");
                             clearConsole();
                         }
-                    //clearConsole();
+                    
                     } else if ("6".equals(choice)) {
                         System.out.println("👋 終了します。");
                         break;
@@ -304,7 +304,7 @@ public class JAES {
                         System.out.println("❌ 無効な選択です");
                         clearConsole();
                     }
-                    //clearConsole();
+                    
                 } catch (Exception ex) {
                     System.err.println("⚠ エラー: " + ex.getMessage());
                     clearConsole();
