@@ -58,6 +58,11 @@ public class JAES {
             System.err.println("⚠ キーディレクトリ作成に失敗しました: " + KEY_DIR);
     }
 }
+    public static String getExtension(String filename) {
+    int dot = filename.lastIndexOf('.');
+    if (dot == -1) return "";  // 拡張子なし
+    return filename.substring(dot + 1);
+}
 
     private static final Path PRIV_PEM = KEY_DIR.resolve("private.pem");
     private static final Path PUB_PEM  = KEY_DIR.resolve("public.pem");
@@ -150,19 +155,26 @@ public class JAES {
 
                         
                         Files.write(out, blob, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                        
+                        SplitMerge.split(out);
                         System.out.println("✅ 暗号化完了（チェーン継承）: " + out);
                         clearConsole();
                     } else if ("2".equals(choice)) {
                         System.out.print(".jdecファイルのパス: ");
                         String input = br.readLine().trim();  // まず文字列で受け取る
-
+                        
                         if (input.isEmpty()) {
                             System.out.println("処理をキャンセルしました。メニューに戻ります。");
                             clearConsole();
                             continue; // または continue; （ループ構造に応じて）
                         }
-
+                        
                         Path in = Paths.get(input);  // 空でない場合のみ Path に変換
+                        String ext = getExtension(in.toString());
+                        if (ext.endsWith("jdec0")){
+                        
+                            in = SplitMerge.mergeFromPart0(in);
+                        }
                         if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
                         System.out.print("メモ（任意）: ");
                         String memo = br.readLine();
