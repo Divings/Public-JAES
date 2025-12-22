@@ -121,6 +121,7 @@ public class SplitMerge {
             bw.write("mode=half\n");
             bw.write("parts=2\n");
             bw.write("delmode=false\n");
+            bw.write("public_key_path=\n");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -134,6 +135,7 @@ public class SplitMerge {
         map.put("mode", "half");
         map.put("parts", "2");
         map.put("delmode", "false");
+        map.put("public_key_path", "");
 
         try {
             for (String line : Files.readAllLines(CONFIG_PATH, StandardCharsets.UTF_8)) {
@@ -174,6 +176,11 @@ public class SplitMerge {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static String getPublicKeyPath(){
+        Map<String, String> cfg = loadSettings();
+        return cfg.getOrDefault("public_key_path", "").trim();
     }
 
     /* ============================================================

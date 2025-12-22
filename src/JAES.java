@@ -41,7 +41,7 @@ public class JAES {
     private static final String BLOCKCHAIN_HEADER_STR = "BLOCKCHAIN_DATA_START\n";
     private static final byte[] BLOCKCHAIN_HEADER = BLOCKCHAIN_HEADER_STR.getBytes(StandardCharsets.UTF_8);
     private static final String PNG_EXT = ".jpng";
-
+    
     // 鍵ファイル
     private static final Path KEY_DIR;
 
@@ -68,8 +68,10 @@ public class JAES {
     private static final Path PUB_PEM  = KEY_DIR.resolve("public.pem");
     private static Path CURRENT_PUB_KEY = PUB_PEM;
     private static boolean NOCLS_MODE = false;
+    private static int n = 0; // 設定ファイルの値を使用するかの判定用変数
 
     public static void main(String[] args) {
+        SplitMerge.initConfig();
         System.setProperty("file.encoding", "UTF-8");
         System.setProperty("sun.jnu.encoding", "UTF-8");
                 
@@ -91,12 +93,22 @@ public class JAES {
             Path argKey = Paths.get(args[0]);
             if (Files.exists(argKey)) {
                 CURRENT_PUB_KEY = argKey;
+                n = 1;
             }
         }
 
+        String cfgKeyPath = SplitMerge.getPublicKeyPath();
+        if (n == 0){
+            if (!cfgKeyPath.isEmpty()) {
+                Path cfgKey = Paths.get(cfgKeyPath);
 
-
-
+                if (Files.exists(cfgKey) && Files.isRegularFile(cfgKey)) {
+                    CURRENT_PUB_KEY = cfgKey;
+                    System.out.println("設定ファイル指定の公開鍵を使用: " + cfgKey);
+                }
+            }
+        }
+    
         // JAESPublicKeyExporter.exportToJarDirectory();
         try {
             Files.createDirectories(KEY_DIR);
