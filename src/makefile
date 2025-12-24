@@ -21,3 +21,14 @@ rebuild: clean all
 
 clean:
 	rm -f *.class *.jar
+
+PREFIX  = /opt/JAES
+BINDIR  = $(PREFIX)/bin
+WRAPPER = /usr/bin/jaes
+
+install: all
+	mkdir -p $(BINDIR)
+	cp $(JARFILE) $(BINDIR)/
+	echo '#!/bin/sh' > $(WRAPPER)
+	echo 'exec java -jar $(BINDIR)/$(JARFILE) "$$@"' >> $(WRAPPER)
+	chmod +x $(WRAPPER)
