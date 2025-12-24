@@ -91,16 +91,21 @@ public class SplitMerge {
     /* ============================================================
        JAR と同じ場所を返す
     ============================================================ */
-    public static Path getJarDir() {
-        try {
-            URI uri = SplitMerge.class.getProtectionDomain()
-                    .getCodeSource()
-                    .getLocation()
-                    .toURI();
-            return Path.of(uri).getParent();
-        } catch (Exception e) {
-            return Path.of(".").toAbsolutePath().normalize();
+    public static Path getConfigDir() {
+        String baseDir = System.getenv("APPDATA");
+        if (baseDir == null || baseDir.isEmpty()) {
+            // Linux / macOS
+            baseDir = System.getProperty("user.home") + "/.config";
         }
+
+        Path configDir = Paths.get(baseDir, "JAES");
+        try {
+            Files.createDirectories(configDir);
+        } catch (IOException e) {
+            System.err.println("⚠ 設定ディレクトリ作成に失敗しました: " + configDir);
+        }
+
+        return configDir;
     }
 
     /* ============================================================
@@ -109,7 +114,7 @@ public class SplitMerge {
     private static final Path CONFIG_PATH;
 
     static {
-        CONFIG_PATH = getJarDir().resolve("split_config.ini");
+        CONFIG_PATH = getConfigDir().resolve("split_config.ini");
     }
 
     public static void initConfig() {
