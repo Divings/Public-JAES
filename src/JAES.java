@@ -5,6 +5,11 @@
  * All rights reserved.
  */
 
+import javax.crypto.*;
+import javax.crypto.spec.PBEKeySpec;
+import java.security.spec.PKCS8EncodedKeySpec;
+import javax.crypto.spec.PBEParameterSpec;
+
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -191,8 +196,10 @@ public class JAES {
                         System.out.print("メモ（任意）: ");
                         String memo = br.readLine();
                         Path out = guessDecryptedName(in);
+
+                        char[] pass = readPassphrase();
                         // originalJdec を渡す → 追記書戻しはGZIP圧縮で
-                        DecryptResult res = decryptFromBlob(Files.readAllBytes(in), loadPrivateKeyFromPemOrDer(PRIV_PEM), memo, true, in);
+                        DecryptResult res = decryptFromBlob(Files.readAllBytes(in), PrivateKeyProtector.loadEncrypted(PRIV_PEM, pass), memo, true, in);
                         Files.write(out, res.plaintext, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                         System.out.println("✅ 復号完了（チェーン追記済）: " + out);
                         clearConsole();
@@ -268,9 +275,10 @@ public class JAES {
                         if (payloadLen < 0 || payloadLen > pixels.length - 4) { System.out.println("❌ PNG内データ長が不正");clearConsole(); continue; }
                         byte[] blob = new byte[payloadLen];
                         bb.get(blob);
+                        char[] pass = readPassphrase();
 
                         // 復号＋チェーン追記済みblob取得（PNGは可読JSONで書戻す）
-                        DecryptResult res = decryptFromBlob(blob, loadPrivateKeyFromPemOrDer(PRIV_PEM), memo, true, null);
+                        DecryptResult res = decryptFromBlob(blob, PrivateKeyProtector.loadEncrypted(PRIV_PEM, pass), memo, true, null);
                         Files.write(out, res.plaintext, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
                         // PNGを書き戻し（チェーン更新反映）＋メタ LastUpdated 更新
@@ -351,6 +359,16 @@ public class JAES {
             System.err.println("⚠ 実行エラー: " + e.getMessage());
         }
     }
+
+private static char[] readPassphrase() throws IOException {
+    Console console = System.console();
+    if (console == null) {
+        throw new IllegalStateException(
+            "コンソールが利用できません（IDE実行やリダイレクトでは使用不可）"
+        );
+    }
+    return console.readPassword("秘密鍵のパスフレーズ: ");
+}
 
     // ========= 一行入力 =========
     public static void input(String args) {
@@ -705,15 +723,79 @@ public class JAES {
         return sb.toString();
     }
 
-    private static void ensureKeyPair() throws Exception {
-        if (Files.exists(PRIV_PEM) && Files.exists(PUB_PEM)) return;
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-        kpg.initialize(2048);
-        KeyPair kp = kpg.generateKeyPair();
-        writePem("PRIVATE KEY", kp.getPrivate().getEncoded(), PRIV_PEM);
-        writePem("PUBLIC KEY", kp.getPublic().getEncoded(), PUB_PEM);
-        
+private static void ensureKeyPair() throws Exception {
+    if (Files.exists(PRIV_PEM) && Files.exists(PUB_PEM)) return;
+
+    KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+    kpg.initialize(2048);
+    KeyPair kp = kpg.generateKeyPair();
+
+    // 🔐 パスフレーズ取得（初回のみ）
+    char[] pass = readPassphraseForKeyGen();
+
+    // 秘密鍵：暗号化して保存
+
+PrivateKeyProtector.saveEncrypted(
+    kp.getPrivate(),
+    pass,
+    PRIV_PEM
+);
+    // 公開鍵：そのまま
+    writePem("PUBLIC KEY", kp.getPublic().getEncoded(), PUB_PEM);
+
+    Arrays.fill(pass, '\0');
+}
+
+private static char[] readPassphraseForKeyGen() throws IOException {
+    Console console = System.console();
+    if (console == null) {
+        throw new IllegalStateException("コンソールが使用できません");
     }
+
+    char[] p1 = console.readPassword("秘密鍵のパスフレーズ: ");
+    char[] p2 = console.readPassword("もう一度入力してください: ");
+
+    if (!Arrays.equals(p1, p2)) {
+        throw new IllegalArgumentException("パスフレーズが一致しません");
+    }
+    Arrays.fill(p2, '\0');
+    return p1;
+}
+
+private static void writeEncryptedPrivateKeyPem(
+        PrivateKey privateKey,
+        char[] passphrase,
+        Path out
+) throws Exception {
+
+    byte[] encoded = privateKey.getEncoded(); // PKCS#8
+
+    // Java標準PBE（OpenSSL互換）
+    String algo = "PBEWithSHA1AndDESede";
+    int iterationCount = 100_000;
+
+    byte[] salt = SecureRandom.getInstanceStrong().generateSeed(16);
+
+    PBEKeySpec pbeKeySpec = new PBEKeySpec(passphrase);
+    SecretKeyFactory skf = SecretKeyFactory.getInstance(algo);
+    SecretKey pbeKey = skf.generateSecret(pbeKeySpec);
+
+    Cipher cipher = Cipher.getInstance(algo);
+    cipher.init(
+        Cipher.ENCRYPT_MODE,
+        pbeKey,
+        new PBEParameterSpec(salt, iterationCount)
+    );
+
+    byte[] encrypted = cipher.doFinal(encoded);
+
+    EncryptedPrivateKeyInfo epki =
+        new EncryptedPrivateKeyInfo(cipher.getParameters(), encrypted);
+
+    byte[] der = epki.getEncoded();
+
+    writePem("ENCRYPTED PRIVATE KEY", der, out);
+}
 
     private static void writePem(String type, byte[] der, Path out) throws IOException {
     // AppData配下のファイル名を決定
@@ -739,21 +821,12 @@ public class JAES {
     }
 }
 
-
     private static PublicKey loadPublicKeyFromPemOrDer(Path p) throws Exception {
         byte[] all = Files.readAllBytes(p);
         byte[] der = tryExtractDerFromPem(all, "PUBLIC KEY");
         if (der == null) der = all;
         X509EncodedKeySpec spec = new X509EncodedKeySpec(der);
         return KeyFactory.getInstance("RSA").generatePublic(spec);
-    }
-
-    private static PrivateKey loadPrivateKeyFromPemOrDer(Path p) throws Exception {
-        byte[] all = Files.readAllBytes(p);
-        byte[] der = tryExtractDerFromPem(all, "PRIVATE KEY");
-        if (der == null) der = all;
-        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(der);
-        return KeyFactory.getInstance("RSA").generatePrivate(spec);
     }
 
     private static byte[] tryExtractDerFromPem(byte[] pemBytes, String type) {
