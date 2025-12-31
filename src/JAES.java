@@ -9,6 +9,7 @@ import javax.crypto.*;
 import javax.crypto.spec.PBEKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
+import java.util.Scanner;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -48,7 +49,7 @@ public class JAES {
     private static final String PNG_EXT = ".jpng";
     
     // 鍵ファイル
-    private static final Path KEY_DIR;
+    private static Path KEY_DIR;
 
     static {
         String appData = System.getenv("APPDATA");
@@ -69,12 +70,12 @@ public class JAES {
     return filename.substring(dot + 1);
 }
 
-    private static final Path PRIV_PEM = KEY_DIR.resolve("private.pem");
-    private static final Path PUB_PEM  = KEY_DIR.resolve("public.pem");
+    private static Path PRIV_PEM = KEY_DIR.resolve("private.pem");
+    private static Path PUB_PEM  = KEY_DIR.resolve("public.pem");
     private static Path CURRENT_PUB_KEY = PUB_PEM;
     private static boolean NOCLS_MODE = false;
     private static int n = 0; // 設定ファイルの値を使用するかの判定用変数
-
+    private static boolean PortableMode=false; // ポータブルモード判定変数
     public static void main(String[] args) {
         SplitMerge.initConfig();
         System.setProperty("file.encoding", "UTF-8");
@@ -93,6 +94,19 @@ public class JAES {
             }
             if (args[0].equals("--nocls")){
                 NOCLS_MODE=true;
+            }
+
+            if (args[0].equals("--portable")){
+                String portableDir = args[1].replace("\"", "");
+                Path base = Path.of(portableDir);
+                Path dir = Paths.get(args[1]);
+
+                if (Files.exists(dir) && Files.isDirectory(dir)) {
+                    KEY_DIR = dir;
+                    PRIV_PEM = KEY_DIR.resolve("private.pem");
+                    PUB_PEM  = KEY_DIR.resolve("public.pem");
+                    PortableMode=true;
+                }
             }
 
             Path argKey = Paths.get(args[0]);
@@ -122,10 +136,15 @@ public class JAES {
             System.err.println("鍵ディレクトリ準備に失敗: " + e.getMessage());
             return;
         }
-        
+        //BufferedReader br = new BufferedReader(new InputStreamReader(System.in, "UTF-8"))
         try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in, "UTF-8"))) {
             while (true) {
                 System.out.println();
+                if (PortableMode){
+                    System.out.println("ポータブルモード:有効");
+                }else{
+                    System.out.println("ポータブルモード:無効");
+                }
                 System.out.println("現在使用中の公開鍵: " + CURRENT_PUB_KEY.getFileName());
                 System.out.println("\nモードを選択してください:");
                 System.out.println("1: 暗号化（jdec出力）");
@@ -135,6 +154,7 @@ public class JAES {
                 System.out.println("5: ブロックチェーン検証（.jdec / .jpng）");
                 System.out.println("6: 終了");
                 System.out.print("\n選択 >> ");
+                //String choice = br.readLine();
                 String choice = br.readLine();
                 if (choice == null) break;
                 choice = choice.trim();
@@ -142,16 +162,16 @@ public class JAES {
                 try {
                     if ("1".equals(choice)) {
                         System.out.print("暗号化するファイルのパス: ");
-                        String input = br.readLine().trim();  // まず文字列で受け取る
-
+                        //String input = br.readLine().trim();  // まず文字列で受け取る
+                        String input = br.readLine().trim();
                         if (input.isEmpty()) {
                             System.out.println("処理をキャンセルしました。メニューに戻ります。");
                             clearConsole();
                             continue; // または continue; （ループ構造に応じて）
                         }
-
+                        
                         Path in = Paths.get(input);  // 空でない場合のみ Path に変換
-
+                        
                         if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); clearConsole();continue; }
                         System.out.print("メモ（任意）: ");
                         String memo = br.readLine();
@@ -170,7 +190,6 @@ public class JAES {
                             true // compressChainForJdec
                         );
 
-                        
                         Files.write(out, blob, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                         
                         SplitMerge.split(out);
@@ -251,18 +270,20 @@ public class JAES {
                             continue; // または continue; （ループ構造に応じて）
                         }
 
-                        Path inPng = Paths.get(input);  // 空でない場合のみ Path に変換
+                        Path inPng = Paths.get(input).toAbsolutePath();;  // 空でない場合のみ Path に変換
 
                         if (!Files.exists(inPng)) { System.out.println("❌ ファイルが存在しません"); continue; }
 
                         // 自動で元の拡張子に復元（<元名>.jpng → <元名>）
                         String name = inPng.getFileName().toString();
                         Path out;
+                        
                         if (name.endsWith(PNG_EXT)) {
-                            out = inPng.getParent().resolve(name.substring(0, name.length() - PNG_EXT.length()));
+                            out = inPng.getParent().resolveSibling(name.substring(0, name.length() - PNG_EXT.length()));
                         } else {
                             out = inPng.resolveSibling(name + ".dec");
                         }
+
                         // System.out.println("[INFO] 出力ファイル名: " + out);
                         System.out.print("メモ（任意）: ");
                         String memo = br.readLine();
