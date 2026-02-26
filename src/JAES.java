@@ -109,11 +109,14 @@ public class JAES {
                 }
             }
 
+            
             Path argKey = Paths.get(args[0]);
+            
             if (Files.exists(argKey)) {
                 CURRENT_PUB_KEY = argKey;
                 n = 1;
             }
+            
         }
 
         String cfgKeyPath = SplitMerge.getPublicKeyPath();
@@ -152,7 +155,8 @@ public class JAES {
                 System.out.println("3: 暗号化（PNG出力）");
                 System.out.println("4: 復号化（PNG入力) ");
                 System.out.println("5: ブロックチェーン検証（.jdec / .jpng）");
-                System.out.println("6: 終了");
+                System.out.println("6: ブロックチェーンをエクスポート");
+                System.out.println("7: 終了");
                 System.out.print("\n選択 >> ");
                 //String choice = br.readLine();
                 String choice = br.readLine();
@@ -361,8 +365,22 @@ public class JAES {
                             System.out.println(ok ? "✅ チェーンは整合しています" : "❌ チェーンに不整合があります");
                             clearConsole();
                         }
-                    
                     } else if ("6".equals(choice)) {
+                        System.out.print("エクスポートするファイルのパス（.jdec / .jpng）: ");
+                        String input = br.readLine().trim();  // まず文字列で受け取る
+
+                        if (input.isEmpty()) {
+                            System.out.println("処理をキャンセルしました。メニューに戻ります。");
+                            clearConsole();
+                            continue; // または continue; （ループ構造に応じて）
+                        }
+
+                        Path in = Paths.get(input);  // 空でない場合のみ Path に変換
+                        exportBlockchainToFile(in);
+                        System.out.print("ブロックチェーンをエクスポートしました。");
+                        clearConsole();
+                        continue;
+                    } else if ("7".equals(choice)) {
                         System.out.println("👋 終了します。");
                         break;
 
@@ -380,6 +398,76 @@ public class JAES {
             System.err.println("⚠ 実行エラー: " + e.getMessage());
         }
     }
+
+    public static void exportBlockchainToFile(Path input) throws IOException {
+    // 入力ファイルと同じフォルダに出す
+    String name = input.getFileName().toString();
+
+    // 拡張子を落とす（.jdec / .jpng / .jdec0 など）
+    String base = name;
+    int dot = name.lastIndexOf('.');
+    if (dot > 0) base = name.substring(0, dot);
+
+    // 例: sample.jdec -> sample.chain.json
+    Path outFile = input.resolveSibling(base + ".chain.json");
+
+    exportBlockchainToFile(input, outFile); // 2引数版に委譲
+}
+
+    // ================================
+// ブロックチェーンJSONを書き出し（.jdec / .jpng 両対応）
+// ================================
+public static void exportBlockchainToFile(Path inputs, Path outFile) throws IOException {
+    String name = inputs.getFileName().toString().toLowerCase(Locale.ROOT);
+
+    Optional<String> chainJson;
+
+    if (name.endsWith(".jpng")) {
+        chainJson = extractBlockchainFromJpng(inputs);
+    } else {
+        // .jdec / .jdec0 / その他は「バイナリ末尾にチェーンが付く」扱いで読む
+        // ※ .jdec0 分割ファイル対応をしたい場合は、既存の SplitMerge.mergeFromPart0 をここで呼ぶのが安全
+        chainJson = extractBlockchainFromJdec(inputs);
+    }
+
+    if (!chainJson.isPresent() || chainJson.get().trim().isEmpty()) {
+        throw new IOException("ブロックチェーンデータが見つかりませんでした: " + inputs);
+    }
+
+    Files.write(outFile, chainJson.get().getBytes(StandardCharsets.UTF_8),
+            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+}
+
+private static Optional<String> extractBlockchainFromJdec(Path jdecPath) throws IOException {
+    Path p = jdecPath;
+
+    // 分割 .jdec0 を使っている場合のケア（あなたの実装に合わせて）
+    String lower = p.getFileName().toString().toLowerCase(Locale.ROOT);
+    if (lower.endsWith("jdec0")) {
+        // 既にJAES内で使っている想定のヘルパー
+        p = SplitMerge.mergeFromPart0(p);
+    }
+
+    byte[] data = Files.readAllBytes(p);
+    return readBlockchainJsonIfAny(data); // 既存privateメソッド
+}
+
+private static Optional<String> extractBlockchainFromJpng(Path jpngPath) throws IOException {
+    BufferedImage img = ImageIO.read(jpngPath.toFile());
+    if (img == null) throw new IOException("PNGの読み込みに失敗しました: " + jpngPath);
+
+    byte[] pixels = decodeFromImage(img); // 既存privateメソッド
+    if (pixels.length < 4) return Optional.empty();
+
+    ByteBuffer bb = ByteBuffer.wrap(pixels);
+    int payloadLen = bb.getInt();
+    if (payloadLen < 0 || payloadLen > pixels.length - 4) return Optional.empty();
+
+    byte[] blob = new byte[payloadLen];
+    bb.get(blob);
+
+    return readBlockchainJsonIfAny(blob); // 既存privateメソッド
+}
 
 private static char[] readPassphrase() throws IOException {
     Console console = System.console();
