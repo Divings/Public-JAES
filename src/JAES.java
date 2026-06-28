@@ -1,3 +1,4 @@
+
 /**
  * BlockchainExporter.java
  * 
@@ -47,7 +48,9 @@ public class JAES {
     private static final String BLOCKCHAIN_HEADER_STR = "BLOCKCHAIN_DATA_START\n";
     private static final byte[] BLOCKCHAIN_HEADER = BLOCKCHAIN_HEADER_STR.getBytes(StandardCharsets.UTF_8);
     private static final String PNG_EXT = ".jpng";
-    
+
+    private static final String JAVA_VERSION_HEADER_STR = "JAVA_VERSION_START\n";
+    private static final byte[] JAVA_VERSION_HEADER = JAVA_VERSION_HEADER_STR.getBytes(StandardCharsets.UTF_8);
     // 鍵ファイル
     private static Path KEY_DIR;
 
@@ -62,41 +65,44 @@ public class JAES {
             Files.createDirectories(KEY_DIR);
         } catch (IOException e) {
             System.err.println("⚠ キーディレクトリ作成に失敗しました: " + KEY_DIR);
+        }
     }
-}
+
     public static String getExtension(String filename) {
-    int dot = filename.lastIndexOf('.');
-    if (dot == -1) return "";  // 拡張子なし
-    return filename.substring(dot + 1);
-}
+        int dot = filename.lastIndexOf('.');
+        if (dot == -1)
+            return ""; // 拡張子なし
+        return filename.substring(dot + 1);
+    }
 
     private static Path PRIV_PEM = KEY_DIR.resolve("private.pem");
-    private static Path PUB_PEM  = KEY_DIR.resolve("public.pem");
+    private static Path PUB_PEM = KEY_DIR.resolve("public.pem");
     private static Path CURRENT_PUB_KEY = PUB_PEM;
     private static boolean NOCLS_MODE = false;
     private static int n = 0; // 設定ファイルの値を使用するかの判定用変数
-    private static boolean PortableMode=false; // ポータブルモード判定変数
+    private static boolean PortableMode = false; // ポータブルモード判定変数
+
     public static void main(String[] args) {
         SplitMerge.initConfig();
         System.setProperty("file.encoding", "UTF-8");
         System.setProperty("sun.jnu.encoding", "UTF-8");
-                
+
         // --- 公開鍵選択 ---
         if (args.length > 0) {
-            if (args[0].equals("--exportpub")){
+            if (args[0].equals("--exportpub")) {
                 try {
                     JAESPublicKeyExporter.exportToJarDirectory(true);
-                
+
                 } catch (IOException e) {
                     System.err.println("公開鍵のエクスポートに失敗しました: " + e.getMessage());
                 }
                 clearConsole();
             }
-            if (args[0].equals("--nocls")){
-                NOCLS_MODE=true;
+            if (args[0].equals("--nocls")) {
+                NOCLS_MODE = true;
             }
 
-            if (args[0].equals("--portable")){
+            if (args[0].equals("--portable")) {
                 String portableDir = args[1].replace("\"", "");
                 Path base = Path.of(portableDir);
                 Path dir = Paths.get(args[1]);
@@ -104,23 +110,22 @@ public class JAES {
                 if (Files.exists(dir) && Files.isDirectory(dir)) {
                     KEY_DIR = dir;
                     PRIV_PEM = KEY_DIR.resolve("private.pem");
-                    PUB_PEM  = KEY_DIR.resolve("public.pem");
-                    PortableMode=true;
+                    PUB_PEM = KEY_DIR.resolve("public.pem");
+                    PortableMode = true;
                 }
             }
 
-            
             Path argKey = Paths.get(args[0]);
-            
+
             if (Files.exists(argKey)) {
                 CURRENT_PUB_KEY = argKey;
                 n = 1;
             }
-            
+
         }
 
         String cfgKeyPath = SplitMerge.getPublicKeyPath();
-        if (n == 0){
+        if (n == 0) {
             if (!cfgKeyPath.isEmpty()) {
                 Path cfgKey = Paths.get(cfgKeyPath);
 
@@ -130,7 +135,7 @@ public class JAES {
                 }
             }
         }
-    
+
         // JAESPublicKeyExporter.exportToJarDirectory();
         try {
             Files.createDirectories(KEY_DIR);
@@ -139,13 +144,14 @@ public class JAES {
             System.err.println("鍵ディレクトリ準備に失敗: " + e.getMessage());
             return;
         }
-        //BufferedReader br = new BufferedReader(new InputStreamReader(System.in, "UTF-8"))
+        // BufferedReader br = new BufferedReader(new InputStreamReader(System.in,
+        // "UTF-8"))
         try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in, "UTF-8"))) {
             while (true) {
                 System.out.println();
-                if (PortableMode){
+                if (PortableMode) {
                     System.out.println("ポータブルモード:有効");
-                }else{
+                } else {
                     System.out.println("ポータブルモード:無効");
                 }
                 System.out.println("現在使用中の公開鍵: " + CURRENT_PUB_KEY.getFileName());
@@ -156,27 +162,33 @@ public class JAES {
                 System.out.println("4: 復号化（PNG入力) ");
                 System.out.println("5: ブロックチェーン検証（.jdec / .jpng）");
                 System.out.println("6: ブロックチェーンをエクスポート");
-                System.out.println("7: 終了");
+                System.out.println("7: Javaバージョン情報を表示");
+                System.out.println("8: 終了");
                 System.out.print("\n選択 >> ");
-                //String choice = br.readLine();
+                // String choice = br.readLine();
                 String choice = br.readLine();
-                if (choice == null) break;
+                if (choice == null)
+                    break;
                 choice = choice.trim();
 
                 try {
                     if ("1".equals(choice)) {
                         System.out.print("暗号化するファイルのパス: ");
-                        //String input = br.readLine().trim();  // まず文字列で受け取る
+                        // String input = br.readLine().trim(); // まず文字列で受け取る
                         String input = br.readLine().trim();
                         if (input.isEmpty()) {
                             System.out.println("処理をキャンセルしました。メニューに戻ります。");
                             clearConsole();
                             continue; // または continue; （ループ構造に応じて）
                         }
-                        
-                        Path in = Paths.get(input);  // 空でない場合のみ Path に変換
-                        
-                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); clearConsole();continue; }
+
+                        Path in = Paths.get(input); // 空でない場合のみ Path に変換
+
+                        if (!Files.exists(in)) {
+                            System.out.println("❌ ファイルが存在しません");
+                            clearConsole();
+                            continue;
+                        }
                         System.out.print("メモ（任意）: ");
                         String memo = br.readLine();
                         Path out = in.resolveSibling(in.getFileName().toString() + ".jdec");
@@ -184,51 +196,55 @@ public class JAES {
                         // ▶ 既存 .jdec があればチェーン継承
                         Blockchain baseChain = tryLoadExistingChainFromJdec(out);
                         byte[] blob;
-                        
 
                         blob = buildEncryptedBlobWithBaseChain(
-                        Files.readAllBytes(in),
-                            loadPublicKeyFromPemOrDer(CURRENT_PUB_KEY),
-                            memo,
-                            baseChain,
-                            true // compressChainForJdec
+                                Files.readAllBytes(in),
+                                loadPublicKeyFromPemOrDer(CURRENT_PUB_KEY),
+                                memo,
+                                baseChain,
+                                true // compressChainForJdec
                         );
 
                         Files.write(out, blob, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                        
+
                         SplitMerge.split(out);
                         System.out.println("✅ 暗号化完了（チェーン継承）: " + out);
                         clearConsole();
                     } else if ("2".equals(choice)) {
                         System.out.print(".jdecファイルのパス: ");
-                        String input = br.readLine().trim();  // まず文字列で受け取る
-                        
+                        String input = br.readLine().trim(); // まず文字列で受け取る
+
                         if (input.isEmpty()) {
                             System.out.println("処理をキャンセルしました。メニューに戻ります。");
                             clearConsole();
                             continue; // または continue; （ループ構造に応じて）
                         }
-                        
-                        Path in = Paths.get(input);  // 空でない場合のみ Path に変換
+
+                        Path in = Paths.get(input); // 空でない場合のみ Path に変換
                         String ext = getExtension(in.toString());
-                        if (ext.endsWith("jdec0")){
-                        
+                        if (ext.endsWith("jdec0")) {
+
                             in = SplitMerge.mergeFromPart0(in);
                         }
-                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
+                        if (!Files.exists(in)) {
+                            System.out.println("❌ ファイルが存在しません");
+                            continue;
+                        }
                         System.out.print("メモ（任意）: ");
                         String memo = br.readLine();
                         Path out = guessDecryptedName(in);
 
                         char[] pass = readPassphrase();
                         // originalJdec を渡す → 追記書戻しはGZIP圧縮で
-                        DecryptResult res = decryptFromBlob(Files.readAllBytes(in), PrivateKeyProtector.loadEncrypted(PRIV_PEM, pass), memo, true, in);
-                        Files.write(out, res.plaintext, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                        DecryptResult res = decryptFromBlob(Files.readAllBytes(in),
+                                PrivateKeyProtector.loadEncrypted(PRIV_PEM, pass), memo, true, in);
+                        Files.write(out, res.plaintext, StandardOpenOption.CREATE,
+                                StandardOpenOption.TRUNCATE_EXISTING);
                         System.out.println("✅ 復号完了（チェーン追記済）: " + out);
                         clearConsole();
                     } else if ("3".equals(choice)) {
                         System.out.print("暗号化するファイルのパス: ");
-                        String input = br.readLine().trim();  // まず文字列で受け取る
+                        String input = br.readLine().trim(); // まず文字列で受け取る
 
                         if (input.isEmpty()) {
                             System.out.println("処理をキャンセルしました。メニューに戻ります。");
@@ -236,9 +252,12 @@ public class JAES {
                             continue; // または continue; （ループ構造に応じて）
                         }
 
-                        Path in = Paths.get(input);  // 空でない場合のみ Path に変換
+                        Path in = Paths.get(input); // 空でない場合のみ Path に変換
 
-                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); continue; }
+                        if (!Files.exists(in)) {
+                            System.out.println("❌ ファイルが存在しません");
+                            continue;
+                        }
                         Path outPng = in.resolveSibling(in.getFileName().toString() + PNG_EXT);
                         System.out.println("[INFO] 出力ファイル名: " + outPng);
                         System.out.print("メモ（任意）: ");
@@ -252,21 +271,21 @@ public class JAES {
                                 loadPublicKeyFromPemOrDer(CURRENT_PUB_KEY),
                                 memo,
                                 baseChain,
-                                false  // compressChainForJdec = false → 可読JSONでPNGへ
+                                false // compressChainForJdec = false → 可読JSONでPNGへ
                         );
                         ByteBuffer bb = ByteBuffer.allocate(4 + blob.length);
                         bb.putInt(blob.length);
                         bb.put(blob);
                         BufferedImage img = encodeToImage(bb.array());
 
-                        Map<String,String> meta = new LinkedHashMap<String,String>();
+                        Map<String, String> meta = new LinkedHashMap<String, String>();
                         meta.put("LastUpdated", Instant.now().toString());
                         writePngWithText(img, outPng, meta);
                         System.out.println("✅ 暗号化結果をPNGに出力（チェーン継承・LastUpdated付）: " + outPng);
                         clearConsole();
                     } else if ("4".equals(choice)) {
                         System.out.print("入力PNGファイルのパス: ");
-                        String input = br.readLine().trim();  // まず文字列で受け取る
+                        String input = br.readLine().trim(); // まず文字列で受け取る
 
                         if (input.isEmpty()) {
                             System.out.println("処理をキャンセルしました。メニューに戻ります。");
@@ -274,14 +293,18 @@ public class JAES {
                             continue; // または continue; （ループ構造に応じて）
                         }
 
-                        Path inPng = Paths.get(input).toAbsolutePath();;  // 空でない場合のみ Path に変換
+                        Path inPng = Paths.get(input).toAbsolutePath();
+                        ; // 空でない場合のみ Path に変換
 
-                        if (!Files.exists(inPng)) { System.out.println("❌ ファイルが存在しません"); continue; }
+                        if (!Files.exists(inPng)) {
+                            System.out.println("❌ ファイルが存在しません");
+                            continue;
+                        }
 
                         // 自動で元の拡張子に復元（<元名>.jpng → <元名>）
                         String name = inPng.getFileName().toString();
                         Path out;
-                        
+
                         if (name.endsWith(PNG_EXT)) {
                             out = inPng.getParent().resolveSibling(name.substring(0, name.length() - PNG_EXT.length()));
                         } else {
@@ -294,17 +317,27 @@ public class JAES {
 
                         BufferedImage img = ImageIO.read(inPng.toFile());
                         byte[] pixels = decodeFromImage(img);
-                        if (pixels.length < 4) { System.out.println("❌ PNGが不正です"); clearConsole();continue; }
+                        if (pixels.length < 4) {
+                            System.out.println("❌ PNGが不正です");
+                            clearConsole();
+                            continue;
+                        }
                         ByteBuffer bb = ByteBuffer.wrap(pixels);
                         int payloadLen = bb.getInt();
-                        if (payloadLen < 0 || payloadLen > pixels.length - 4) { System.out.println("❌ PNG内データ長が不正");clearConsole(); continue; }
+                        if (payloadLen < 0 || payloadLen > pixels.length - 4) {
+                            System.out.println("❌ PNG内データ長が不正");
+                            clearConsole();
+                            continue;
+                        }
                         byte[] blob = new byte[payloadLen];
                         bb.get(blob);
                         char[] pass = readPassphrase();
 
                         // 復号＋チェーン追記済みblob取得（PNGは可読JSONで書戻す）
-                        DecryptResult res = decryptFromBlob(blob, PrivateKeyProtector.loadEncrypted(PRIV_PEM, pass), memo, true, null);
-                        Files.write(out, res.plaintext, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                        DecryptResult res = decryptFromBlob(blob, PrivateKeyProtector.loadEncrypted(PRIV_PEM, pass),
+                                memo, true, null);
+                        Files.write(out, res.plaintext, StandardOpenOption.CREATE,
+                                StandardOpenOption.TRUNCATE_EXISTING);
 
                         // PNGを書き戻し（チェーン更新反映）＋メタ LastUpdated 更新
                         if (res.updatedBlob != null) {
@@ -313,7 +346,7 @@ public class JAES {
                             bb2.put(res.updatedBlob);
                             BufferedImage updated = encodeToImage(bb2.array());
 
-                            Map<String,String> meta = new LinkedHashMap<String,String>();
+                            Map<String, String> meta = new LinkedHashMap<String, String>();
                             meta.put("LastUpdated", Instant.now().toString());
                             writePngWithText(updated, inPng, meta);
                         }
@@ -321,7 +354,7 @@ public class JAES {
                         clearConsole();
                     } else if ("5".equals(choice)) {
                         System.out.print("検証するファイルのパス（.jdec / .jpng）: ");
-                        String input = br.readLine().trim();  // まず文字列で受け取る
+                        String input = br.readLine().trim(); // まず文字列で受け取る
 
                         if (input.isEmpty()) {
                             System.out.println("処理をキャンセルしました。メニューに戻ります。");
@@ -329,9 +362,13 @@ public class JAES {
                             continue; // または continue; （ループ構造に応じて）
                         }
 
-                        Path in = Paths.get(input);  // 空でない場合のみ Path に変換
+                        Path in = Paths.get(input); // 空でない場合のみ Path に変換
 
-                        if (!Files.exists(in)) { System.out.println("❌ ファイルが存在しません"); clearConsole();continue; }
+                        if (!Files.exists(in)) {
+                            System.out.println("❌ ファイルが存在しません");
+                            clearConsole();
+                            continue;
+                        }
 
                         String name = in.getFileName().toString();
                         byte[] blob;
@@ -340,7 +377,11 @@ public class JAES {
                             // PNG から埋め込みデータ抽出
                             BufferedImage img = ImageIO.read(in.toFile());
                             byte[] pixels = decodeFromImage(img);
-                            if (pixels.length < 4) { System.out.println("❌ PNGが不正です"); clearConsole();continue; }
+                            if (pixels.length < 4) {
+                                System.out.println("❌ PNGが不正です");
+                                clearConsole();
+                                continue;
+                            }
                             ByteBuffer bb = ByteBuffer.wrap(pixels);
                             int payloadLen = bb.getInt();
                             if (payloadLen < 0 || payloadLen > pixels.length - 4) {
@@ -361,13 +402,16 @@ public class JAES {
                         } else {
                             Blockchain chain = Blockchain.fromJson(chainJson.get());
                             boolean ok = false;
-                            try { ok = chain.isValid(); } catch (Exception ignore) {}
+                            try {
+                                ok = chain.isValid();
+                            } catch (Exception ignore) {
+                            }
                             System.out.println(ok ? "✅ チェーンは整合しています" : "❌ チェーンに不整合があります");
                             clearConsole();
                         }
                     } else if ("6".equals(choice)) {
                         System.out.print("エクスポートするファイルのパス（.jdec / .jpng）: ");
-                        String input = br.readLine().trim();  // まず文字列で受け取る
+                        String input = br.readLine().trim(); // まず文字列で受け取る
 
                         if (input.isEmpty()) {
                             System.out.println("処理をキャンセルしました。メニューに戻ります。");
@@ -375,12 +419,63 @@ public class JAES {
                             continue; // または continue; （ループ構造に応じて）
                         }
 
-                        Path in = Paths.get(input);  // 空でない場合のみ Path に変換
+                        Path in = Paths.get(input); // 空でない場合のみ Path に変換
                         exportBlockchainToFile(in);
                         System.out.print("ブロックチェーンをエクスポートしました。");
                         clearConsole();
                         continue;
                     } else if ("7".equals(choice)) {
+                        System.out.print("Javaバージョンを確認するファイルのパス（.jdec / .jpng）: ");
+                        String input = br.readLine().trim();
+
+                        if (input.isEmpty()) {
+                            System.out.println("処理をキャンセルしました。メニューに戻ります。");
+                            clearConsole();
+                            continue;
+                        }
+
+                        Path in = Paths.get(input);
+                        String ext = getExtension(in.toString());
+                        if (ext.endsWith("jdec0")) {
+                            in = SplitMerge.mergeFromPart0(in);
+                        }
+                        if (!Files.exists(in)) {
+                            System.out.println("❌ ファイルが存在しません");
+                            clearConsole();
+                            continue;
+                        }
+
+                        byte[] blob;
+
+                        if (in.getFileName().toString().endsWith(PNG_EXT)) {
+                            BufferedImage img = ImageIO.read(in.toFile());
+                            byte[] pixels = decodeFromImage(img);
+
+                            if (pixels.length < 4) {
+                                System.out.println("❌ PNGが不正です");
+                                clearConsole();
+                                continue;
+                            }
+
+                            ByteBuffer bb = ByteBuffer.wrap(pixels);
+                            int payloadLen = bb.getInt();
+
+                            if (payloadLen < 0 || payloadLen > pixels.length - 4) {
+                                System.out.println("❌ PNG内データ長が不正");
+                                clearConsole();
+                                continue;
+                            }
+
+                            blob = new byte[payloadLen];
+                            bb.get(blob);
+                        } else {
+                            blob = Files.readAllBytes(in);
+                        }
+
+                        showJavaVersionInfo(blob);
+                        clearConsole();
+
+                    } else if ("8".equals(choice)) {
                         System.out.println("👋 終了します。");
                         break;
 
@@ -388,7 +483,7 @@ public class JAES {
                         System.out.println("❌ 無効な選択です");
                         clearConsole();
                     }
-                    
+
                 } catch (Exception ex) {
                     System.err.println("⚠ エラー: " + ex.getMessage());
                     clearConsole();
@@ -399,96 +494,104 @@ public class JAES {
         }
     }
 
+    private static byte[] buildJavaVersionBytes() {
+        return System.getProperty("java.version")
+                .getBytes(StandardCharsets.UTF_8);
+    }
+
     public static void exportBlockchainToFile(Path input) throws IOException {
-    // 入力ファイルと同じフォルダに出す
-    String name = input.getFileName().toString();
+        // 入力ファイルと同じフォルダに出す
+        String name = input.getFileName().toString();
 
-    // 拡張子を落とす（.jdec / .jpng / .jdec0 など）
-    String base = name;
-    int dot = name.lastIndexOf('.');
-    if (dot > 0) base = name.substring(0, dot);
+        // 拡張子を落とす（.jdec / .jpng / .jdec0 など）
+        String base = name;
+        int dot = name.lastIndexOf('.');
+        if (dot > 0)
+            base = name.substring(0, dot);
 
-    // 例: sample.jdec -> sample.chain.json
-    Path outFile = input.resolveSibling(base + ".chain.json");
+        // 例: sample.jdec -> sample.chain.json
+        Path outFile = input.resolveSibling(base + ".chain.json");
 
-    exportBlockchainToFile(input, outFile); // 2引数版に委譲
-}
+        exportBlockchainToFile(input, outFile); // 2引数版に委譲
+    }
 
     // ================================
-// ブロックチェーンJSONを書き出し（.jdec / .jpng 両対応）
-// ================================
-public static void exportBlockchainToFile(Path inputs, Path outFile) throws IOException {
-    String name = inputs.getFileName().toString().toLowerCase(Locale.ROOT);
+    // ブロックチェーンJSONを書き出し（.jdec / .jpng 両対応）
+    // ================================
+    public static void exportBlockchainToFile(Path inputs, Path outFile) throws IOException {
+        String name = inputs.getFileName().toString().toLowerCase(Locale.ROOT);
 
-    Optional<String> chainJson;
+        Optional<String> chainJson;
 
-    if (name.endsWith(".jpng")) {
-        chainJson = extractBlockchainFromJpng(inputs);
-    } else {
-        // .jdec / .jdec0 / その他は「バイナリ末尾にチェーンが付く」扱いで読む
-        // ※ .jdec0 分割ファイル対応をしたい場合は、既存の SplitMerge.mergeFromPart0 をここで呼ぶのが安全
-        chainJson = extractBlockchainFromJdec(inputs);
+        if (name.endsWith(".jpng")) {
+            chainJson = extractBlockchainFromJpng(inputs);
+        } else {
+            // .jdec / .jdec0 / その他は「バイナリ末尾にチェーンが付く」扱いで読む
+            // ※ .jdec0 分割ファイル対応をしたい場合は、既存の SplitMerge.mergeFromPart0 をここで呼ぶのが安全
+            chainJson = extractBlockchainFromJdec(inputs);
+        }
+
+        if (!chainJson.isPresent() || chainJson.get().trim().isEmpty()) {
+            throw new IOException("ブロックチェーンデータが見つかりませんでした: " + inputs);
+        }
+
+        Files.write(outFile, chainJson.get().getBytes(StandardCharsets.UTF_8),
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
     }
 
-    if (!chainJson.isPresent() || chainJson.get().trim().isEmpty()) {
-        throw new IOException("ブロックチェーンデータが見つかりませんでした: " + inputs);
+    private static Optional<String> extractBlockchainFromJdec(Path jdecPath) throws IOException {
+        Path p = jdecPath;
+
+        // 分割 .jdec0 を使っている場合のケア（あなたの実装に合わせて）
+        String lower = p.getFileName().toString().toLowerCase(Locale.ROOT);
+        if (lower.endsWith("jdec0")) {
+            // 既にJAES内で使っている想定のヘルパー
+            p = SplitMerge.mergeFromPart0(p);
+        }
+
+        byte[] data = Files.readAllBytes(p);
+        return readBlockchainJsonIfAny(data); // 既存privateメソッド
     }
 
-    Files.write(outFile, chainJson.get().getBytes(StandardCharsets.UTF_8),
-            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-}
+    private static Optional<String> extractBlockchainFromJpng(Path jpngPath) throws IOException {
+        BufferedImage img = ImageIO.read(jpngPath.toFile());
+        if (img == null)
+            throw new IOException("PNGの読み込みに失敗しました: " + jpngPath);
 
-private static Optional<String> extractBlockchainFromJdec(Path jdecPath) throws IOException {
-    Path p = jdecPath;
+        byte[] pixels = decodeFromImage(img); // 既存privateメソッド
+        if (pixels.length < 4)
+            return Optional.empty();
 
-    // 分割 .jdec0 を使っている場合のケア（あなたの実装に合わせて）
-    String lower = p.getFileName().toString().toLowerCase(Locale.ROOT);
-    if (lower.endsWith("jdec0")) {
-        // 既にJAES内で使っている想定のヘルパー
-        p = SplitMerge.mergeFromPart0(p);
+        ByteBuffer bb = ByteBuffer.wrap(pixels);
+        int payloadLen = bb.getInt();
+        if (payloadLen < 0 || payloadLen > pixels.length - 4)
+            return Optional.empty();
+
+        byte[] blob = new byte[payloadLen];
+        bb.get(blob);
+
+        return readBlockchainJsonIfAny(blob); // 既存privateメソッド
     }
 
-    byte[] data = Files.readAllBytes(p);
-    return readBlockchainJsonIfAny(data); // 既存privateメソッド
-}
-
-private static Optional<String> extractBlockchainFromJpng(Path jpngPath) throws IOException {
-    BufferedImage img = ImageIO.read(jpngPath.toFile());
-    if (img == null) throw new IOException("PNGの読み込みに失敗しました: " + jpngPath);
-
-    byte[] pixels = decodeFromImage(img); // 既存privateメソッド
-    if (pixels.length < 4) return Optional.empty();
-
-    ByteBuffer bb = ByteBuffer.wrap(pixels);
-    int payloadLen = bb.getInt();
-    if (payloadLen < 0 || payloadLen > pixels.length - 4) return Optional.empty();
-
-    byte[] blob = new byte[payloadLen];
-    bb.get(blob);
-
-    return readBlockchainJsonIfAny(blob); // 既存privateメソッド
-}
-
-private static char[] readPassphrase() throws IOException {
-    Console console = System.console();
-    if (console == null) {
-        throw new IllegalStateException(
-            "コンソールが利用できません（IDE実行やリダイレクトでは使用不可）"
-        );
+    private static char[] readPassphrase() throws IOException {
+        Console console = System.console();
+        if (console == null) {
+            throw new IllegalStateException(
+                    "コンソールが利用できません（IDE実行やリダイレクトでは使用不可）");
+        }
+        return console.readPassword("秘密鍵のパスフレーズ: ");
     }
-    return console.readPassword("秘密鍵のパスフレーズ: ");
-}
 
     // ========= 一行入力 =========
     public static void input(String args) {
-        Scanner scanner = new Scanner(System.in);  // 標準入力を扱うScannerを作成
-        System.out.print(" >> ");                  // プロンプトを表示
-        String input = scanner.nextLine();         // 1行分の入力を読み取る
+        Scanner scanner = new Scanner(System.in); // 標準入力を扱うScannerを作成
+        System.out.print(" >> "); // プロンプトを表示
+        String input = scanner.nextLine(); // 1行分の入力を読み取る
     }
 
     // ========= 画面を初期化 =========
     public static void clearConsole() {
-        if (NOCLS_MODE){
+        if (NOCLS_MODE) {
             return;
         }
         input(" >>");
@@ -521,9 +624,11 @@ private static char[] readPassphrase() throws IOException {
             if (Files.exists(jdecPath)) {
                 byte[] existing = Files.readAllBytes(jdecPath);
                 Optional<String> cj = readBlockchainJsonIfAny(existing);
-                if (cj.isPresent()) return Blockchain.fromJson(cj.get());
+                if (cj.isPresent())
+                    return Blockchain.fromJson(cj.get());
             }
-        } catch (Exception ignore) {}
+        } catch (Exception ignore) {
+        }
         return new Blockchain();
     }
 
@@ -539,17 +644,21 @@ private static char[] readPassphrase() throws IOException {
                         byte[] blob = new byte[payloadLen];
                         bb.get(blob);
                         Optional<String> cj = readBlockchainJsonIfAny(blob);
-                        if (cj.isPresent()) return Blockchain.fromJson(cj.get());
+                        if (cj.isPresent())
+                            return Blockchain.fromJson(cj.get());
                     }
                 }
             }
-        } catch (Exception ignore) {}
+        } catch (Exception ignore) {
+        }
         return new Blockchain();
     }
 
     // ========= 暗号フォーマット構築 =========
-    // .jdec: [4B klen][encKey(RSA-OAEP)][12B nonce][ciphertext][16B tag] + HEADER + (JSON gzip or plain)
-    private static byte[] buildEncryptedBlobWithBaseChain(byte[] plaintext, PublicKey pub, String memo, Blockchain baseChain, boolean compressChainForJdec) throws Exception {
+    // .jdec: [4B klen][encKey(RSA-OAEP)][12B nonce][ciphertext][16B tag] + HEADER +
+    // (JSON gzip or plain)
+    private static byte[] buildEncryptedBlobWithBaseChain(byte[] plaintext, PublicKey pub, String memo,
+            Blockchain baseChain, boolean compressChainForJdec) throws Exception {
         KeyGenerator kg = KeyGenerator.getInstance("AES");
         kg.init(AES_KEY_SIZE);
         SecretKey aesKey = kg.generateKey();
@@ -595,29 +704,37 @@ private static char[] readPassphrase() throws IOException {
         } else {
             bos.write(json);
         }
+        bos.write(JAVA_VERSION_HEADER);
+        bos.write(buildJavaVersionBytes());
         return bos.toByteArray();
     }
 
     // blob から復号。updateChain=true ならチェーン追記済みblobを返す
     // originalJdecOrNull != null のときは .jdec へ書戻す（GZIP圧縮で追記）
     // originalJdecOrNull == null のときは（PNGケース）可読JSONで updatedBlob を返す
-    private static DecryptResult decryptFromBlob(byte[] blob, PrivateKey priv, String memo, boolean updateChain, Path originalJdecOrNull) throws Exception {
+    private static DecryptResult decryptFromBlob(byte[] blob, PrivateKey priv, String memo, boolean updateChain,
+            Path originalJdecOrNull) throws Exception {
+        warnJavaVersionDifference(blob);
+
         int split = indexOf(blob, BLOCKCHAIN_HEADER);
         byte[] cryptoPart;
         Blockchain chain;
         if (split >= 0) {
             cryptoPart = Arrays.copyOfRange(blob, 0, split);
             // 後続を圧縮/非圧縮のどちらでも解析
-            String existingJson = readBlockchainJsonAfterHeader(Arrays.copyOfRange(blob, split + BLOCKCHAIN_HEADER.length, blob.length));
+            String existingJson = readBlockchainJsonAfterHeader(
+                    Arrays.copyOfRange(blob, split + BLOCKCHAIN_HEADER.length, blob.length));
             chain = (existingJson != null && !existingJson.trim().isEmpty())
-                    ? Blockchain.fromJson(existingJson) : new Blockchain();
+                    ? Blockchain.fromJson(existingJson)
+                    : new Blockchain();
         } else {
             cryptoPart = blob;
             chain = new Blockchain();
         }
 
         ByteBuffer buf = ByteBuffer.wrap(cryptoPart);
-        if (buf.remaining() < 4) throw new IllegalArgumentException("Invalid blob");
+        if (buf.remaining() < 4)
+            throw new IllegalArgumentException("Invalid blob");
         int keyLen = buf.getInt();
         if (keyLen <= 0 || buf.remaining() < keyLen + GCM_NONCE_LEN + GCM_TAG_LEN)
             throw new IllegalArgumentException("Invalid RSA key block");
@@ -628,7 +745,8 @@ private static char[] readPassphrase() throws IOException {
         buf.get(nonce);
 
         int remain = buf.remaining();
-        if (remain <= GCM_TAG_LEN) throw new IllegalArgumentException("Invalid GCM block");
+        if (remain <= GCM_TAG_LEN)
+            throw new IllegalArgumentException("Invalid GCM block");
         byte[] ciphertext = new byte[remain - GCM_TAG_LEN];
         buf.get(ciphertext);
         byte[] tag = new byte[GCM_TAG_LEN];
@@ -668,10 +786,14 @@ private static char[] readPassphrase() throws IOException {
             } else {
                 bos.write(json);
             }
+            bos.write(JAVA_VERSION_HEADER);
+            bos.write(buildJavaVersionBytes());
+
             updatedBlobOrNull = bos.toByteArray();
 
             if (originalJdecOrNull != null) {
-                Files.write(originalJdecOrNull, updatedBlobOrNull, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
+                Files.write(originalJdecOrNull, updatedBlobOrNull, StandardOpenOption.TRUNCATE_EXISTING,
+                        StandardOpenOption.CREATE);
             }
         }
         return new DecryptResult(plaintext, updatedBlobOrNull);
@@ -679,9 +801,9 @@ private static char[] readPassphrase() throws IOException {
 
     // ========= PNG エンコード/デコード（圧縮なし：RGB直格納） =========
     private static BufferedImage encodeToImage(byte[] data) {
-        int numPixels = (int)Math.ceil(data.length / 3.0);
-        int width = (int)Math.ceil(Math.sqrt(numPixels));
-        int height = (int)Math.ceil((double)numPixels / width);
+        int numPixels = (int) Math.ceil(data.length / 3.0);
+        int width = (int) Math.ceil(Math.sqrt(numPixels));
+        int height = (int) Math.ceil((double) numPixels / width);
         BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         int idx = 0;
         for (int y = 0; y < height; y++) {
@@ -710,9 +832,11 @@ private static char[] readPassphrase() throws IOException {
     }
 
     // ========= PNG 書き込み（tEXt: LastUpdated 付） =========
-    private static void writePngWithText(BufferedImage img, Path out, Map<String,String> textPairs) throws IOException {
+    private static void writePngWithText(BufferedImage img, Path out, Map<String, String> textPairs)
+            throws IOException {
         Iterator<ImageWriter> it = ImageIO.getImageWritersByFormatName("png");
-        if (!it.hasNext()) throw new IOException("PNG ImageWriter not found");
+        if (!it.hasNext())
+            throw new IOException("PNG ImageWriter not found");
         ImageWriter writer = it.next();
         ImageWriteParam param = writer.getDefaultWriteParam();
         ImageTypeSpecifier type = ImageTypeSpecifier.createFromRenderedImage(img);
@@ -739,13 +863,14 @@ private static char[] readPassphrase() throws IOException {
         }
 
         if (textPairs != null) {
-            for (Map.Entry<String,String> en : textPairs.entrySet()) {
+            for (Map.Entry<String, String> en : textPairs.entrySet()) {
                 String key = en.getKey();
                 for (int i = text.getLength() - 1; i >= 0; i--) {
                     IIOMetadataNode n = (IIOMetadataNode) text.item(i);
                     if ("tEXtEntry".equals(n.getNodeName())) {
                         String k = n.getAttribute("keyword");
-                        if (key.equals(k)) text.removeChild(n);
+                        if (key.equals(k))
+                            text.removeChild(n);
                     }
                 }
                 IIOMetadataNode entry = new IIOMetadataNode("tEXtEntry");
@@ -772,7 +897,8 @@ private static char[] readPassphrase() throws IOException {
     // ========= チェーン読み出し（圧縮/非圧縮 自動判定） =========
     private static Optional<String> readBlockchainJsonIfAny(byte[] data) {
         int split = indexOf(data, BLOCKCHAIN_HEADER);
-        if (split < 0) return Optional.empty();
+        if (split < 0)
+            return Optional.empty();
         String json = readBlockchainJsonAfterHeaderString(data, split + BLOCKCHAIN_HEADER.length);
         return (json == null) ? Optional.empty() : Optional.of(json);
     }
@@ -782,7 +908,76 @@ private static char[] readPassphrase() throws IOException {
         return readBlockchainJsonAfterHeader(tail);
     }
 
+    private static Optional<String> readJavaVersionIfAny(byte[] data) {
+        int pos = indexOf(data, JAVA_VERSION_HEADER);
+        if (pos < 0)
+            return Optional.empty();
+
+        byte[] versionBytes = Arrays.copyOfRange(
+                data,
+                pos + JAVA_VERSION_HEADER.length,
+                data.length);
+
+        String version = new String(versionBytes, StandardCharsets.UTF_8).trim();
+        return version.isEmpty() ? Optional.empty() : Optional.of(version);
+    }
+
+    private static int parseJavaMajorVersion(String version) {
+        try {
+            if (version.startsWith("1.")) {
+                return Integer.parseInt(version.split("\\.")[1]);
+            }
+            return Integer.parseInt(version.split("[\\.\\-\\+]")[0]);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private static void showJavaVersionInfo(byte[] data) {
+        Optional<String> embedded = readJavaVersionIfAny(data);
+
+        if (!embedded.isPresent()) {
+            System.out.println("ℹ Javaバージョン情報は見つかりませんでした。");
+            return;
+        }
+
+        System.out.println("✅ 暗号化時のJavaバージョン: " + embedded.get());
+        System.out.println("現在のJavaバージョン: " + System.getProperty("java.version"));
+
+        int embeddedMajor = parseJavaMajorVersion(embedded.get());
+        int currentMajor = Runtime.version().feature();
+
+        if (embeddedMajor == currentMajor) {
+            System.out.println("判定         : 一致");
+        } else {
+            System.out.println("判定         : 不一致（復号できない場合があります）");
+        }
+    }
+
+    private static void warnJavaVersionDifference(byte[] blob) {
+        Optional<String> embedded = readJavaVersionIfAny(blob);
+        if (!embedded.isPresent())
+            return;
+
+        String embeddedVersion = embedded.get();
+        String currentVersion = System.getProperty("java.version");
+
+        int embeddedMajor = parseJavaMajorVersion(embeddedVersion);
+        int currentMajor = Runtime.version().feature();
+
+        if (embeddedMajor > 0 && embeddedMajor != currentMajor) {
+            System.out.println("⚠ Javaバージョン差異があります。");
+            System.out.println("  暗号化時 Java: " + embeddedVersion);
+            System.out.println("  現在の Java: " + currentVersion);
+            System.out.println("  バージョン差異により、復号できない場合があります。");
+        }
+    }
+
     private static String readBlockchainJsonAfterHeader(byte[] tail) {
+        int versionPos = indexOf(tail, JAVA_VERSION_HEADER);
+        if (versionPos >= 0) {
+            tail = Arrays.copyOfRange(tail, 0, versionPos);
+        }
         // まずGZIPとして試す
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(tail);
@@ -790,7 +985,8 @@ private static char[] readPassphrase() throws IOException {
             ByteArrayOutputStream buf = new ByteArrayOutputStream();
             byte[] tmp = new byte[1024];
             int r;
-            while ((r = gz.read(tmp)) != -1) buf.write(tmp, 0, r);
+            while ((r = gz.read(tmp)) != -1)
+                buf.write(tmp, 0, r);
             gz.close();
             return new String(buf.toByteArray(), StandardCharsets.UTF_8);
         } catch (Exception ignored) {
@@ -806,9 +1002,8 @@ private static char[] readPassphrase() throws IOException {
     private static Path guessDecryptedName(Path input) {
         String name = input.getFileName().toString();
         if (name.endsWith(".jdec")) {
-            return input.getParent() == null ?
-                    Paths.get(name.substring(0, name.length() - 5)) :
-                    input.getParent().resolve(name.substring(0, name.length() - 5));
+            return input.getParent() == null ? Paths.get(name.substring(0, name.length() - 5))
+                    : input.getParent().resolve(name.substring(0, name.length() - 5));
         }
         return input.resolveSibling(name + ".dec");
     }
@@ -817,9 +1012,13 @@ private static char[] readPassphrase() throws IOException {
         for (int i = 0; i <= data.length - pattern.length; i++) {
             boolean match = true;
             for (int j = 0; j < pattern.length; j++) {
-                if (data[i + j] != pattern[j]) { match = false; break; }
+                if (data[i + j] != pattern[j]) {
+                    match = false;
+                    break;
+                }
             }
-            if (match) return i;
+            if (match)
+                return i;
         }
         return -1;
     }
@@ -828,112 +1027,111 @@ private static char[] readPassphrase() throws IOException {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         byte[] h = md.digest(data);
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < h.length; i++) sb.append(String.format("%02x", h[i]));
+        for (int i = 0; i < h.length; i++)
+            sb.append(String.format("%02x", h[i]));
         return sb.toString();
     }
 
-private static void ensureKeyPair() throws Exception {
-    if (Files.exists(PRIV_PEM) && Files.exists(PUB_PEM)) return;
+    private static void ensureKeyPair() throws Exception {
+        if (Files.exists(PRIV_PEM) && Files.exists(PUB_PEM))
+            return;
 
-    KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-    kpg.initialize(2048);
-    KeyPair kp = kpg.generateKeyPair();
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+        kpg.initialize(2048);
+        KeyPair kp = kpg.generateKeyPair();
 
-    // 🔐 パスフレーズ取得（初回のみ）
-    char[] pass = readPassphraseForKeyGen();
+        // 🔐 パスフレーズ取得（初回のみ）
+        char[] pass = readPassphraseForKeyGen();
 
-    // 秘密鍵：暗号化して保存
+        // 秘密鍵：暗号化して保存
 
-PrivateKeyProtector.saveEncrypted(
-    kp.getPrivate(),
-    pass,
-    PRIV_PEM
-);
-    // 公開鍵：そのまま
-    writePem("PUBLIC KEY", kp.getPublic().getEncoded(), PUB_PEM);
+        PrivateKeyProtector.saveEncrypted(
+                kp.getPrivate(),
+                pass,
+                PRIV_PEM);
+        // 公開鍵：そのまま
+        writePem("PUBLIC KEY", kp.getPublic().getEncoded(), PUB_PEM);
 
-    Arrays.fill(pass, '\0');
-}
-
-private static char[] readPassphraseForKeyGen() throws IOException {
-    Console console = System.console();
-    if (console == null) {
-        throw new IllegalStateException("コンソールが使用できません");
+        Arrays.fill(pass, '\0');
     }
 
-    char[] p1 = console.readPassword("秘密鍵のパスフレーズ: ");
-    char[] p2 = console.readPassword("もう一度入力してください: ");
+    private static char[] readPassphraseForKeyGen() throws IOException {
+        Console console = System.console();
+        if (console == null) {
+            throw new IllegalStateException("コンソールが使用できません");
+        }
 
-    if (!Arrays.equals(p1, p2)) {
-        throw new IllegalArgumentException("パスフレーズが一致しません");
+        char[] p1 = console.readPassword("秘密鍵のパスフレーズ: ");
+        char[] p2 = console.readPassword("もう一度入力してください: ");
+
+        if (!Arrays.equals(p1, p2)) {
+            throw new IllegalArgumentException("パスフレーズが一致しません");
+        }
+        Arrays.fill(p2, '\0');
+        return p1;
     }
-    Arrays.fill(p2, '\0');
-    return p1;
-}
 
-private static void writeEncryptedPrivateKeyPem(
-        PrivateKey privateKey,
-        char[] passphrase,
-        Path out
-) throws Exception {
+    private static void writeEncryptedPrivateKeyPem(
+            PrivateKey privateKey,
+            char[] passphrase,
+            Path out) throws Exception {
 
-    byte[] encoded = privateKey.getEncoded(); // PKCS#8
+        byte[] encoded = privateKey.getEncoded(); // PKCS#8
 
-    // Java標準PBE（OpenSSL互換）
-    String algo = "PBEWithSHA1AndDESede";
-    int iterationCount = 100_000;
+        // Java標準PBE（OpenSSL互換）
+        String algo = "PBEWithSHA1AndDESede";
+        int iterationCount = 100_000;
 
-    byte[] salt = SecureRandom.getInstanceStrong().generateSeed(16);
+        byte[] salt = SecureRandom.getInstanceStrong().generateSeed(16);
 
-    PBEKeySpec pbeKeySpec = new PBEKeySpec(passphrase);
-    SecretKeyFactory skf = SecretKeyFactory.getInstance(algo);
-    SecretKey pbeKey = skf.generateSecret(pbeKeySpec);
+        PBEKeySpec pbeKeySpec = new PBEKeySpec(passphrase);
+        SecretKeyFactory skf = SecretKeyFactory.getInstance(algo);
+        SecretKey pbeKey = skf.generateSecret(pbeKeySpec);
 
-    Cipher cipher = Cipher.getInstance(algo);
-    cipher.init(
-        Cipher.ENCRYPT_MODE,
-        pbeKey,
-        new PBEParameterSpec(salt, iterationCount)
-    );
+        Cipher cipher = Cipher.getInstance(algo);
+        cipher.init(
+                Cipher.ENCRYPT_MODE,
+                pbeKey,
+                new PBEParameterSpec(salt, iterationCount));
 
-    byte[] encrypted = cipher.doFinal(encoded);
+        byte[] encrypted = cipher.doFinal(encoded);
 
-    EncryptedPrivateKeyInfo epki =
-        new EncryptedPrivateKeyInfo(cipher.getParameters(), encrypted);
+        EncryptedPrivateKeyInfo epki = new EncryptedPrivateKeyInfo(cipher.getParameters(), encrypted);
 
-    byte[] der = epki.getEncoded();
+        byte[] der = epki.getEncoded();
 
-    writePem("ENCRYPTED PRIVATE KEY", der, out);
-}
+        writePem("ENCRYPTED PRIVATE KEY", der, out);
+    }
 
     private static void writePem(String type, byte[] der, Path out) throws IOException {
-    // AppData配下のファイル名を決定
-    String fileName;
-    if (type.toLowerCase().contains("private")) {
-        fileName = "private.pem";
-    } else if (type.toLowerCase().contains("public")) {
-        fileName = "public.pem";
-    } else {
-        fileName = type.replaceAll("\\s+", "_").toLowerCase() + ".pem";
-    }
-
-    Path pemOut = KEY_DIR.resolve(fileName);
-
-    // PEM形式で書き出し
-    String b64 = Base64.getEncoder().encodeToString(der);
-    try (BufferedWriter w = Files.newBufferedWriter(pemOut, StandardCharsets.US_ASCII)) {
-        w.write("-----BEGIN " + type + "-----\n");
-        for (int i = 0; i < b64.length(); i += 64) {
-            w.write(b64.substring(i, Math.min(i + 64, b64.length())) + "\n");
+        // AppData配下のファイル名を決定
+        String fileName;
+        if (type.toLowerCase().contains("private")) {
+            fileName = "private.pem";
+        } else if (type.toLowerCase().contains("public")) {
+            fileName = "public.pem";
+        } else {
+            fileName = type.replaceAll("\\s+", "_").toLowerCase() + ".pem";
         }
-        w.write("-----END " + type + "-----\n");
+
+        Path pemOut = KEY_DIR.resolve(fileName);
+
+        // PEM形式で書き出し
+        String b64 = Base64.getEncoder().encodeToString(der);
+        try (BufferedWriter w = Files.newBufferedWriter(pemOut, StandardCharsets.US_ASCII)) {
+            w.write("-----BEGIN " + type + "-----\n");
+            for (int i = 0; i < b64.length(); i += 64) {
+                w.write(b64.substring(i, Math.min(i + 64, b64.length())) + "\n");
+            }
+            w.write("-----END " + type + "-----\n");
+        }
     }
-}
 
     private static PublicKey loadPublicKeyFromPemOrDer(Path p) throws Exception {
         byte[] all = Files.readAllBytes(p);
         byte[] der = tryExtractDerFromPem(all, "PUBLIC KEY");
-        if (der == null) der = all;
+        if (der == null)
+            der = all;
         X509EncodedKeySpec spec = new X509EncodedKeySpec(der);
         return KeyFactory.getInstance("RSA").generatePublic(spec);
     }
@@ -944,7 +1142,8 @@ private static void writeEncryptedPrivateKeyPem(
         String foot = "-----END " + type + "-----";
         int i = s.indexOf(head);
         int j = s.indexOf(foot);
-        if (i < 0 || j < 0) return null;
+        if (i < 0 || j < 0)
+            return null;
         String b64 = s.substring(i + head.length(), j).replaceAll("\\s", "");
         return Base64.getDecoder().decode(b64);
     }
@@ -974,7 +1173,8 @@ private static void writeEncryptedPrivateKeyPem(
             String s = timestamp + "|" + previousHash + "|" + operationType + "|" + fileHash + "|" + user + "|" + memo;
             byte[] h = md.digest(s.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < h.length; i++) sb.append(String.format("%02x", h[i]));
+            for (int i = 0; i < h.length; i++)
+                sb.append(String.format("%02x", h[i]));
             return sb.toString();
         }
     }
@@ -983,7 +1183,8 @@ private static void writeEncryptedPrivateKeyPem(
         private final List<Block> chain = new ArrayList<Block>();
 
         void addBlock(Block b) throws Exception {
-            if (!chain.isEmpty()) b.previousHash = chain.get(chain.size() - 1).hash;
+            if (!chain.isEmpty())
+                b.previousHash = chain.get(chain.size() - 1).hash;
             b.hash = b.calcHash();
             chain.add(b);
         }
@@ -991,9 +1192,12 @@ private static void writeEncryptedPrivateKeyPem(
         boolean isValid() throws Exception {
             for (int i = 0; i < chain.size(); i++) {
                 Block cur = chain.get(i);
-                if (i == 0 && !"0".equals(cur.previousHash)) return false;
-                if (i > 0 && !cur.previousHash.equals(chain.get(i - 1).hash)) return false;
-                if (!cur.calcHash().equals(cur.hash)) return false;
+                if (i == 0 && !"0".equals(cur.previousHash))
+                    return false;
+                if (i > 0 && !cur.previousHash.equals(chain.get(i - 1).hash))
+                    return false;
+                if (!cur.calcHash().equals(cur.hash))
+                    return false;
             }
             return true;
         }
@@ -1004,13 +1208,14 @@ private static void writeEncryptedPrivateKeyPem(
             for (int i = 0; i < chain.size(); i++) {
                 Block b = chain.get(i);
                 sb.append("  {\"timestamp\":\"").append(esc(b.timestamp))
-                  .append("\",\"previous_hash\":\"").append(esc(b.previousHash))
-                  .append("\",\"operation_type\":\"").append(esc(b.operationType))
-                  .append("\",\"file_hash\":\"").append(esc(b.fileHash))
-                  .append("\",\"user\":\"").append(esc(b.user))
-                  .append("\",\"memo\":\"").append(esc(b.memo))
-                  .append("\",\"hash\":\"").append(esc(b.hash)).append("\"}");
-                if (i < chain.size() - 1) sb.append(",");
+                        .append("\",\"previous_hash\":\"").append(esc(b.previousHash))
+                        .append("\",\"operation_type\":\"").append(esc(b.operationType))
+                        .append("\",\"file_hash\":\"").append(esc(b.fileHash))
+                        .append("\",\"user\":\"").append(esc(b.user))
+                        .append("\",\"memo\":\"").append(esc(b.memo))
+                        .append("\",\"hash\":\"").append(esc(b.hash)).append("\"}");
+                if (i < chain.size() - 1)
+                    sb.append(",");
                 sb.append("\n");
             }
             sb.append("]");
@@ -1019,7 +1224,8 @@ private static void writeEncryptedPrivateKeyPem(
 
         static Blockchain fromJson(String json) {
             Blockchain bc = new Blockchain();
-            if (json == null || json.trim().isEmpty()) return bc;
+            if (json == null || json.trim().isEmpty())
+                return bc;
             String[] blocks = json.split("\\},\\s*\\{");
             for (int i = 0; i < blocks.length; i++) {
                 String blk = blocks[i];
@@ -1036,7 +1242,8 @@ private static void writeEncryptedPrivateKeyPem(
                             map.put(k, v);
                         }
                     }
-                    Block b = new Block(map.get("file_hash"), map.get("operation_type"), map.get("user"), map.get("memo"));
+                    Block b = new Block(map.get("file_hash"), map.get("operation_type"), map.get("user"),
+                            map.get("memo"));
                     b.timestamp = map.get("timestamp");
                     b.previousHash = map.get("previous_hash");
                     b.hash = map.get("hash");
@@ -1049,7 +1256,8 @@ private static void writeEncryptedPrivateKeyPem(
         }
 
         private static String esc(String s) {
-            if (s == null) return "";
+            if (s == null)
+                return "";
             String t = s.replace("\\", "\\\\").replace("\"", "\\\"");
             t = t.replace("\n", "\\n").replace("\r", "\\r");
             return t;
