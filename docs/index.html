@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JAES - Java AES Encrypt System</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #e5e7eb;
+      line-height: 1.8;
+    }
+
+    header {
+      padding: 80px 24px;
+      text-align: center;
+      background: radial-gradient(circle at top, #38bdf8 0%, transparent 35%);
+    }
+
+    header h1 {
+      font-size: 3rem;
+      margin: 0;
+      color: #ffffff;
+    }
+
+    header p {
+      color: #cbd5e1;
+      font-size: 1.2rem;
+    }
+
+    main {
+      max-width: 980px;
+      margin: auto;
+      padding: 32px 20px 80px;
+    }
+
+    section {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 22px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(10px);
+    }
+
+    h2 {
+      color: #7dd3fc;
+      border-bottom: 1px solid rgba(125, 211, 252, 0.25);
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      color: #bae6fd;
+    }
+
+    strong {
+      color: #ffffff;
+    }
+
+    ul {
+      padding-left: 1.3em;
+    }
+
+    li {
+      margin: 8px 0;
+    }
+
+    code, pre {
+      background: #020617;
+      color: #a7f3d0;
+      border-radius: 12px;
+    }
+
+    code {
+      padding: 2px 6px;
+    }
+
+    pre {
+      padding: 16px;
+      overflow-x: auto;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    a {
+      color: #38bdf8;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      padding: 18px;
+      border-radius: 16px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    footer {
+      text-align: center;
+      padding: 32px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>🧩 JAES</h1>
+    <p>Java AES Encrypt System</p>
+    <p>AES + RSA によるハイブリッド暗号化ツール</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>概要</h2>
+      <p>
+        <strong>JAES</strong> は、AESおよびRSAによるハイブリッド暗号化を実装した
+        ファイル暗号化・復号化ツールです。
+      </p>
+      <p>
+        ブロックチェーン技術を応用したファイル履歴管理機能を備え、
+        改ざん耐性と完全性検証を実現します。
+      </p>
+    </section>
+
+    <section>
+      <h2>特徴</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>🔒 AES + RSA</h3>
+          <p>データはAESで暗号化し、AES鍵はRSAで保護します。</p>
+        </div>
+        <div class="card">
+          <h3>🧱 ブロックチェーン履歴</h3>
+          <p>暗号化・復号処理を履歴として記録し、整合性を検証できます。</p>
+        </div>
+        <div class="card">
+          <h3>🖼️ PNG出力</h3>
+          <p>暗号化ファイルをPNG形式として保存できます。</p>
+        </div>
+        <div class="card">
+          <h3>☕ Javaバージョン記録</h3>
+          <p>暗号化時のJavaバージョンをファイル内に保存します。</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>システム要件</h2>
+      <ul>
+        <li><strong>Java Runtime Environment:</strong> Java 25 推奨</li>
+        <li><strong>対応OS:</strong> Windows / macOS / Linux</li>
+        <li><strong>メモリ:</strong> 512MB以上推奨</li>
+        <li><strong>文字コード:</strong> UTF-8 推奨</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>インストール</h2>
+      <ol>
+        <li>
+          <a href="https://github.com/Divings/Public-JAES/releases/latest">
+            GitHubリリースページ
+          </a>
+          から最新版の <code>JAES.jar</code> をダウンロードします。
+        </li>
+        <li>任意のフォルダに配置します。</li>
+        <li>Javaがインストールされているか確認します。</li>
+      </ol>
+
+      <pre><code>java -version</code></pre>
+    </section>
+
+    <section>
+      <h2>実行方法</h2>
+
+      <h3>通常起動</h3>
+      <pre><code>java -jar JAES.jar</code></pre>
+
+      <h3>公開鍵を指定して起動</h3>
+      <pre><code>java -jar JAES.jar "C:\path\to\public.pem"</code></pre>
+
+      <h3>ポータブルモード</h3>
+      <pre><code>java -jar JAES.jar --portable "D:\JAES\key"</code></pre>
+
+      <h3>画面クリア無効</h3>
+      <pre><code>java -jar JAES.jar --nocls</code></pre>
+    </section>
+
+    <section>
+      <h2>出力仕様</h2>
+      <ul>
+        <li>暗号化ファイル: <code>.jdec</code></li>
+        <li>PNG出力: <code>.jpng</code></li>
+        <li>復号化時: 元のファイル名へ自動復元</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>注意事項</h2>
+      <ul>
+        <li>秘密鍵を紛失すると復号できません。</li>
+        <li><code>AppData/JAES/key</code> フォルダは必ずバックアップしてください。</li>
+        <li>Javaバージョン差異がある場合、復号できない可能性があります。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>ライセンス</h2>
+      <p>
+        このプロジェクトは MIT License のもとで公開されています。
+      </p>
+      <p>© 2025 合同会社Anvelk Innovations / 古賀智也</p>
+    </section>
+  </main>
+
+  <footer>
+    JAES - Java AES Encrypt System
+  </footer>
+</body>
+</html>
